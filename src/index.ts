@@ -3,7 +3,7 @@ import cors from 'cors'
 import express from 'express'
 import { env } from './constants/enviroments'
 import HandleError from './middlewares/handleError'
-import Router from './routes/index.routes'
+import Router from './routes/v1/index.routes'
 import { connectToDatabase } from './config/mongodb'
 const app: express.Application = express()
 // Port

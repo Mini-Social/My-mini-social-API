@@ -1,0 +1,19 @@
+import express from 'express'
+
+import { getAllUsers } from '@/controllers/user.controller'
+import { getUserById } from '@/controllers/user.controller'
+import { getUserByEmail } from '@/controllers/user.controller'
+import { getUserByUserName } from '@/controllers/user.controller'
+import { createUser } from '@/controllers/user.controller'
+import { deleteUserById } from '@/controllers/user.controller'
+import { updateUserById } from '@/controllers/user.controller'
+const router = express.Router()
+
+router.get('/getAllUsers', getAllUsers)
+router.get('/getUserById/:id', getUserById)
+router.get('/getUserByEmail/:email', getUserByEmail)
+router.get('/getUserByUserName/:userName', getUserByUserName)
+router.post('/register', createUser)
+router.put('/updateUserById/:id', updateUserById)
+router.delete('/deleteUserById/:id', deleteUserById)
+export default router
