@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
 
-const userSchema = new mongoose.Schema(
+const UserSchema = new mongoose.Schema(
   {
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
@@ -19,5 +19,5 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true }
 )
-const UserModel = mongoose.model('User', userSchema, 'User')
+const UserModel = mongoose.model('User', UserSchema, 'User')
 export default UserModel
