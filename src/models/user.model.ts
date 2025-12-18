@@ -13,8 +13,6 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, default: '' },
     birthDate: { type: Date, default: null },
     friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-    followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-    following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     isOnline: { type: Boolean, default: false },
     lastOnline: { type: Date, default: null },
     deleted: { type: Boolean, default: false }
