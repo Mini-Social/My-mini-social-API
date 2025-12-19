@@ -1,6 +1,24 @@
 import mongoose from 'mongoose'
+import bcrypt from 'bcrypt'
+export interface IUser extends mongoose.Document {
+  firstName: string
+  lastName: string
+  userName: string
+  email: string
+  password: string
+  avatar: string
+  bio: string
+  gender: string
+  phone: string
+  birthDate: Date
+  friends: mongoose.Types.ObjectId[]
+  isOnline: boolean
+  lastOnline: Date
+  deleted: boolean
+  comparePassword(candicatePassword: string): Promise<boolean>
+}
 
-const UserSchema = new mongoose.Schema(
+const UserSchema = new mongoose.Schema<IUser>(
   {
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
@@ -19,5 +37,8 @@ const UserSchema = new mongoose.Schema(
   },
   { timestamps: true }
 )
+UserSchema.methods.comparePassword = async function (candicatePassword: string): Promise<boolean> {
+  return bcrypt.compare(this.password, candicatePassword)
+}
 const UserModel = mongoose.model('User', UserSchema, 'User')
 export default UserModel

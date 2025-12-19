@@ -1,6 +1,19 @@
 import mongoose from 'mongoose'
 
-const MessageSchema = new mongoose.Schema(
+interface IMessage extends mongoose.Document {
+  conversationId: mongoose.Types.ObjectId
+  sender: mongoose.Types.ObjectId
+  content: string
+  isRead: boolean
+  attachments: {
+    type: string
+    url: string
+    fileName: string
+    fileSize: number
+  }[]
+}
+
+const MessageSchema = new mongoose.Schema<IMessage>(
   {
     conversationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Conversation', required: true },
     sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },

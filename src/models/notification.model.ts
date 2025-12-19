@@ -1,6 +1,15 @@
 import mongoose from 'mongoose'
 
-const NotificationSchema = new mongoose.Schema(
+interface INotification extends mongoose.Document {
+  sender: mongoose.Types.ObjectId
+  receiver: mongoose.Types.ObjectId
+  type: string
+  postId: mongoose.Types.ObjectId
+  commentId: mongoose.Types.ObjectId
+  conversationId: mongoose.Types.ObjectId
+  isRead: boolean
+}
+const NotificationSchema = new mongoose.Schema<INotification>(
   {
     sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', require: true },
     receiver: { type: mongoose.Schema.Types.ObjectId, ref: 'User', require: true },

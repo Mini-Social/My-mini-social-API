@@ -1,5 +1,10 @@
 import mongoose from 'mongoose'
-const FollowSchema = new mongoose.Schema(
+interface IFollow extends mongoose.Document {
+  follower: mongoose.Types.ObjectId
+  following: mongoose.Types.ObjectId
+  createdAt: Date
+}
+const FollowSchema = new mongoose.Schema<IFollow>(
   {
     follower: { type: mongoose.Schema.Types.ObjectId, ref: 'User', require: true },
     following: { type: mongoose.Schema.Types.ObjectId, ref: 'User', require: true },

@@ -1,5 +1,10 @@
 import mongoose from 'mongoose'
-const FriendRequestSchema = new mongoose.Schema(
+interface IFriendRequest extends mongoose.Document {
+  sender: mongoose.Types.ObjectId
+  receiver: mongoose.Types.ObjectId
+  status: string
+}
+const FriendRequestSchema = new mongoose.Schema<IFriendRequest>(
   {
     sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     receiver: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

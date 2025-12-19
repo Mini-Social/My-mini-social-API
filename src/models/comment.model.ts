@@ -1,5 +1,26 @@
 import mongoose from 'mongoose'
-const CommentSchema = new mongoose.Schema(
+
+interface IComment extends mongoose.Document {
+  postId: mongoose.Types.ObjectId
+  userId: mongoose.Types.ObjectId
+  content: string
+  image: string
+  parentCommentId: mongoose.Types.ObjectId | null
+  reactions: {
+    like: number
+    love: number
+    haha: number
+    wow: number
+    sad: number
+    angry: number
+  }
+  userReactions: {
+    userId: mongoose.Types.ObjectId
+    reactions: string
+    reactionAt: Date
+  }
+}
+const CommentSchema = new mongoose.Schema<IComment>(
   {
     postId: { type: mongoose.Schema.Types.ObjectId, ref: 'Post', required: true },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },

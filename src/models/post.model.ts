@@ -1,6 +1,30 @@
 import mongoose from 'mongoose'
 
-const PostSchema = new mongoose.Schema(
+interface IPost extends mongoose.Document {
+  author: mongoose.Types.ObjectId
+  content: string
+  images: string[]
+  reactions: {
+    like: number
+    love: number
+    haha: number
+    wow: number
+    sad: number
+    angry: number
+  }
+  userReactions: {
+    userId: mongoose.Types.ObjectId
+    reactions: string
+    reactionAt: Date
+  }
+  visibility: string
+  shares: {
+    userId: mongoose.Types.ObjectId
+    sharedAt: Date
+  }
+  sharePostId: mongoose.Types.ObjectId | null
+}
+const PostSchema = new mongoose.Schema<IPost>(
   {
     author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     content: { type: String, required: true },

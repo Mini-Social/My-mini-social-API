@@ -1,6 +1,10 @@
 import mongoose from 'mongoose'
-
-const ConversationSchema = new mongoose.Schema(
+interface IConversation extends mongoose.Document {
+  members: mongoose.Types.ObjectId[]
+  type: string
+  lastMessage: string
+}
+const ConversationSchema = new mongoose.Schema<IConversation>(
   {
     members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     type: { type: String, enum: ['private', 'group'], default: 'private' },
