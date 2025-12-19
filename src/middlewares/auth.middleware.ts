@@ -10,12 +10,13 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
   } else if (req.cookies && req.cookies.jwt) {
     token = req.cookies.jwt
   }
+
   if (!token) {
     return next(new AppError('No token or Invalid Token', 400))
   }
-  const decoded = await jwt.verify(token, env.JWT_SUPERSECRET)
+  const decoded = await jwt.verify(token, env.JWT_SUPERSECRET as string)
   if (!decoded) {
-    return next(new AppError('Invalid Token', 400))
+    return res.status(200).json()
   }
   res.locals.user = decoded as { id: string; role: string }
   next()

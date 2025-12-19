@@ -38,6 +38,10 @@ export const SignUp = AsyncHandler(async (req: Request, res: Response, next: Nex
   }
   SendResponeWithToken(req, res, newUser, 200)
 })
+export const Logout = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  res.clearCookie('jwt')
+  res.status(200).json({ message: 'Logout successfully' })
+})
 function SignToken(id: mongoose.Types.ObjectId, role: string): string {
   const token = jwt.sign({ id, role }, env.JWT_SUPERSECRET as string, {
     expiresIn: Number(env.JWT_COOKIE_EXPIRED_IN) * 24 * 60 * 60 * 1000
