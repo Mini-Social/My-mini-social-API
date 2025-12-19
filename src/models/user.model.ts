@@ -11,6 +11,7 @@ export interface IUser extends mongoose.Document {
   gender: string
   phone: string
   birthDate: Date
+  role: string
   friends: mongoose.Types.ObjectId[]
   isOnline: boolean
   lastOnline: Date
@@ -30,6 +31,7 @@ const UserSchema = new mongoose.Schema<IUser>(
     gender: { type: String, enum: ['Male', 'Female'] },
     phone: { type: String, default: '' },
     birthDate: { type: Date, default: null },
+    role: { type: String, enum: ['Admin', 'User'], default: 'User' },
     friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     isOnline: { type: Boolean, default: false },
     lastOnline: { type: Date, default: null },

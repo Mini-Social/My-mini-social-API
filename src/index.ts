@@ -1,6 +1,7 @@
 // Load environment variables
 import cors from 'cors'
 import express from 'express'
+import cookieParser from 'cookie-parser'
 import { env } from './constants/enviroments'
 import HandleError from './middlewares/handleError'
 import Router from './routes/v1/index.routes'
@@ -12,6 +13,7 @@ const port: number = env.PORT
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cors())
+app.use(cookieParser())
 // Connect to MongoDB
 connectToDatabase()
 // Routes
