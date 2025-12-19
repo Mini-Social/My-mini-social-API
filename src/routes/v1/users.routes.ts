@@ -8,9 +8,12 @@ import { createUser } from '@/controllers/user.controller'
 import { deleteUserById } from '@/controllers/user.controller'
 import { updateUserById } from '@/controllers/user.controller'
 import { authMiddleware } from '@/middlewares/auth.middleware'
+import { SignIn, SignUp } from '@/controllers/auth.controller'
 const router = express.Router()
 
-router.get('/getAllUsers', authMiddleware, getAllUsers)
+router.post('/sign-in', SignIn)
+router.post('/sign-up', SignUp)
+router.get('/getAllUsers', getAllUsers)
 router.get('/getUserById/:id', getUserById)
 router.get('/getUserByEmail/:email', getUserByEmail)
 router.get('/getUserByUserName/:userName', getUserByUserName)

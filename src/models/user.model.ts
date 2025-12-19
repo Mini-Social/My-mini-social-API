@@ -1,11 +1,11 @@
-import mongoose from 'mongoose'
+import mongoose, { Schema, Document } from 'mongoose'
 import bcrypt from 'bcrypt'
-export interface IUser extends mongoose.Document {
+export interface IUser extends Document {
   firstName: string
   lastName: string
   userName: string
   email: string
-  password: string
+  password: string | undefined
   avatar: string
   bio: string
   gender: string
@@ -19,7 +19,7 @@ export interface IUser extends mongoose.Document {
   comparePassword(candicatePassword: string): Promise<boolean>
 }
 
-const UserSchema = new mongoose.Schema<IUser>(
+const UserSchema = new Schema<IUser>(
   {
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
@@ -39,6 +39,11 @@ const UserSchema = new mongoose.Schema<IUser>(
   },
   { timestamps: true }
 )
+UserSchema.pre('save' as any, async function () {
+  if (this.isModified('password')) {
+    this.password = await bcrypt.hash(this.password as string, 10)
+  }
+})
 UserSchema.methods.comparePassword = async function (candicatePassword: string): Promise<boolean> {
   return bcrypt.compare(this.password, candicatePassword)
 }

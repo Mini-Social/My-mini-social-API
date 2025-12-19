@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import AsyncHandler from '../utils/AsyncHandler'
 import UserModel from '@/models/user.model'
-import { userSchema } from '@/validate/user.validate'
+import { userSchema } from '@/validate/validate'
 import bcrypt from 'bcrypt'
 import AppError from '@/utils/AppError'
 import mongoose from 'mongoose'
@@ -48,10 +48,12 @@ export const createUser = AsyncHandler(async (req: Request, res: Response, next:
   if (existEmailUser) {
     return next(new AppError('Email already in use', 400))
   }
-  body.password = await bcrypt.hash(body.password, 10)
-  const newUser = new UserModel(body)
-  await newUser.save()
-  res.status(201).json({ message: 'Created successfully', data: newUser })
+  const user = new UserModel(body)
+  const newUser = await user.save()
+  if (!newUser) {
+    return next(new AppError('Could not create user. Please try again.', 400))
+  }
+  res.status(200).json({ message: 'Created successfully', data: newUser })
 })
 export const updateUserById = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { id } = req.params

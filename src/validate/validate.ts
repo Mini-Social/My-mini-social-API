@@ -17,3 +17,7 @@ export const userSchema = zod
     message: 'Passwords do not match.',
     path: ['passwordConfirm']
   })
+export const loginSchema = zod.object({
+  email: zod.string().email('Please enter a valid email address').trim().toLowerCase(),
+  password: zod.string().min(6, 'Password must be at least 6 characters')
+})
