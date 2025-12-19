@@ -63,3 +63,20 @@ function SendResponeWithToken(req: Request, res: Response, user: IUser, statusCo
     }
   })
 }
+export const UpdatePassword = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { password } = userSchema.partial().parse(req.body)
+  const { id } = res.locals.user
+  const { oldPassword } = req.body
+  const existUser = await UserModel.findById(id)
+  const user = await UserModel.findOne({ email: existUser?.email })
+  if (!existUser || !user) {
+    return next(new AppError('Not Found User', 404))
+  }
+  const isMatch = await bcrypt.compare(oldPassword as string, user?.password as string)
+  if (!oldPassword || oldPassword.length <= 5 || !isMatch) {
+    return next(new AppError('Invalid password', 400))
+  }
+  user.password = password
+  await user.save()
+  res.status(200).json({ message: 'Update password successfully.' })
+})
