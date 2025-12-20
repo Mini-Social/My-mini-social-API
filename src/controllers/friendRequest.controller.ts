@@ -73,6 +73,26 @@ export const AcceptFriendRequest = AsyncHandler(async (req: Request, res: Respon
     message: 'Successfully made friends.'
   })
 })
+export const RefusedFriendRequest = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { requestId } = req.params
+  const { id: myId } = res.locals.user
+  const idValid = CheckInvalidId(requestId)
+  if (!idValid) {
+    return next(new AppError('Invalid ID', 400))
+  }
+  const friendRequest = await FriendRequestModel.findByIdAndDelete({
+    _id: requestId,
+    receiver: myId,
+    status: 'pending'
+  })
+  if (!friendRequest) {
+    return next(new AppError('The request does not exist.', 404))
+  }
+  res.status(200).json({
+    status: 'success',
+    message: 'Successfully refused.'
+  })
+})
 function CheckInvalidId(id: any) {
   return mongoose.Types.ObjectId.isValid(id)
 }
