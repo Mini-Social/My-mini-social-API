@@ -110,3 +110,14 @@ export const UpdateProfile = AsyncHandler(async (req: Request, res: Response, ne
     data: updateMe
   })
 })
+export const GetProfile = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { id } = res.locals.user
+  const user = await UserModel.findById(id).select('-password')
+  if (!user) {
+    return next(new AppError('Not Found User', 404))
+  }
+  res.status(200).json({
+    status: 'success',
+    data: user
+  })
+})
