@@ -10,7 +10,7 @@ export const SendFriendRequest = AsyncHandler(async (req: Request, res: Response
 
   const idValid = CheckInvalidId(receiverId)
   if (!idValid) {
-    return next(new AppError('Invalid ID', 404))
+    return next(new AppError('Invalid ID', 400))
   }
   const receiver = await UserModel.findById(receiverId).select('friends')
   if (!receiver) {
@@ -48,6 +48,31 @@ export const SendFriendRequest = AsyncHandler(async (req: Request, res: Response
   })
 })
 
+export const AcceptFriendRequest = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { requestId } = req.params
+  const { id: myId } = res.locals.user
+  const idValid = CheckInvalidId(requestId)
+  if (!idValid) {
+    return next(new AppError('Invalid ID', 400))
+  }
+  const friendRequest = await FriendRequestModel.findOne({ _id: requestId, receiver: myId, status: 'pending' })
+  if (!friendRequest) {
+    return next(new AppError('The request does not exist.', 404))
+  }
+  await UserModel.findByIdAndUpdate(myId, {
+    $addToSet: { friends: friendRequest.sender }
+  })
+  await UserModel.findByIdAndUpdate(friendRequest.sender, {
+    $addToSet: { friends: myId }
+  })
+  friendRequest.status = 'accepted'
+  await friendRequest.save()
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Successfully made friends.'
+  })
+})
 function CheckInvalidId(id: any) {
   return mongoose.Types.ObjectId.isValid(id)
 }
