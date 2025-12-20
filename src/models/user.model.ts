@@ -14,7 +14,7 @@ export interface IUser extends Document {
   role: string
   friends: mongoose.Types.ObjectId[]
   isOnline: boolean
-  lastOnline: Date
+  lastOnline: Date | null
   deleted: boolean
   comparePassword(candicatePassword: string): Promise<boolean>
 }

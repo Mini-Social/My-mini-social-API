@@ -65,11 +65,11 @@ export const updateUserById = AsyncHandler(async (req: Request, res: Response, n
   if (body.password !== body.passwordConfirm) {
     return next(new AppError('Password and Confirm Password do not match', 400))
   }
-  const existEmailUser = await UserModel.findOne({ email: body.email })
   const existUsernameUser = await UserModel.findOne({ userName: body.userName })
   if (existUsernameUser) {
     return next(new AppError('Username already in use', 400))
   }
+  const existEmailUser = await UserModel.findOne({ email: body.email })
   if (existEmailUser) {
     return next(new AppError('Email already in use', 400))
   }

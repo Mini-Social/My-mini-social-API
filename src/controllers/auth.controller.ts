@@ -9,7 +9,7 @@ import AppError from '@/utils/AppError'
 import mongoose from 'mongoose'
 export const SignIn = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { email, password } = loginSchema.parse(req.body)
-  const user = await UserModel.findOne({ email })
+  const user = await UserModel.findOne({ email, deleted: false })
   if (!user) {
     return next(new AppError('Invalid email. Please try again.', 401))
   }
@@ -17,21 +17,25 @@ export const SignIn = AsyncHandler(async (req: Request, res: Response, next: Nex
   if (!isMatch) {
     return next(new AppError('Invalid password. Please try again.', 401))
   }
-  user.isOnline = true
+  const update = await UserModel.findByIdAndUpdate(user._id, { isOnline: true, lastOnline: null })
+  if (!update) {
+    return next(new AppError('Could not update', 401))
+  }
   SendResponeWithToken(req, res, user, 200)
 })
 export const SignUp = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const body = userSchema.parse(req.body)
 
-  const existEmail = await UserModel.findOne({ email: body.email })
-  const existUser = await UserModel.findOne({ userName: body.userName })
+  const existEmail = await UserModel.findOne({ email: body.email, deleted: false })
   if (existEmail) {
     return next(new AppError('Email already exists. Please use a diffirent email address', 400))
   }
+  const existUser = await UserModel.findOne({ userName: body.userName, deleted: false })
   if (existUser) {
     return next(new AppError('User already exists. Please use a diffirent username', 400))
   }
   const user = new UserModel(body)
+  user.isOnline = true
   const newUser = await user.save()
   if (!newUser) {
     return next(new AppError('Could not create user. Please try again.', 400))
@@ -39,6 +43,11 @@ export const SignUp = AsyncHandler(async (req: Request, res: Response, next: Nex
   SendResponeWithToken(req, res, newUser, 200)
 })
 export const Logout = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { id } = res.locals.user
+  const update = await UserModel.findByIdAndUpdate(id, { isOnline: false, lastOnline: Date.now() })
+  if (!update) {
+    return next(new AppError('Could not update', 401))
+  }
   res.clearCookie('jwt')
   res.status(200).json({ message: 'Logout successfully' })
 })
@@ -68,7 +77,7 @@ export const UpdatePassword = AsyncHandler(async (req: Request, res: Response, n
   const { id } = res.locals.user
   const { oldPassword } = req.body
   const existUser = await UserModel.findById(id)
-  const user = await UserModel.findOne({ email: existUser?.email })
+  const user = await UserModel.findOne({ email: existUser?.email, deleted: false })
   if (!existUser || !user) {
     return next(new AppError('Not Found User', 404))
   }
@@ -79,4 +88,25 @@ export const UpdatePassword = AsyncHandler(async (req: Request, res: Response, n
   user.password = password
   await user.save()
   res.status(200).json({ message: 'Update password successfully.' })
+})
+export const UpdateProfile = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  delete req.body.password
+  const body = userSchema.partial().parse(req.body)
+  const { id } = res.locals.user
+  const existEmail = await UserModel.findOne({ email: body.email, deleted: false })
+  if (existEmail) {
+    return next(new AppError('Email already in use. Please use a different email address.', 400))
+  }
+  const existUsername = await UserModel.findOne({ userName: body.userName, deleted: false })
+  if (existUsername) {
+    return next(new AppError('Username already in use. Please use a different username.', 400))
+  }
+  const updateMe = await UserModel.findByIdAndUpdate(id, body, { new: true }).select('-password')
+  if (!updateMe) {
+    return next(new AppError('Could not update user.', 400))
+  }
+  res.status(200).json({
+    status: 'success',
+    data: updateMe
+  })
 })
