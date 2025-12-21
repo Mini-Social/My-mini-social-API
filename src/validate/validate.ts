@@ -21,3 +21,9 @@ export const loginSchema = zod.object({
   email: zod.string().email('Please enter a valid email address').trim().toLowerCase(),
   password: zod.string().min(6, 'Password must be at least 6 characters')
 })
+export const postSchema = zod.object({
+  content: zod.string().optional(),
+  images: zod.array(zod.string()).optional(),
+  visibility: zod.enum(['public', 'friend', 'private']).optional().default('public'),
+  sharePostId: zod.string().nullable().optional()
+})
