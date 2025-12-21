@@ -102,6 +102,28 @@ export const DeletePost = AsyncHandler(async (req: Request, res: Response, next:
     message: 'Successfully deleted.'
   })
 })
+export const GetPostById = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { postId } = req.params
+  const idValid = CheckInvalidId(postId)
+  if (!idValid) {
+    return next(new AppError('Invalid ID', 400))
+  }
+  const post = await PostModel.findById(postId)
+  if (!post) {
+    return next(new AppError(`Not Found post: ${postId}`, 400))
+  }
+  res.status(200).json({
+    status: 'success',
+    data: { post }
+  })
+})
+export const GetAllPost = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const posts = await PostModel.find()
+  res.status(200).json({
+    status: 'success',
+    data: { posts }
+  })
+})
 function CheckInvalidId(id: any) {
   return mongoose.Types.ObjectId.isValid(id)
 }
