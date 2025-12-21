@@ -37,16 +37,20 @@ const PostSchema = new mongoose.Schema<IPost>(
       sad: { type: Number, default: 0 },
       angry: { type: Number, default: 0 }
     },
-    userReactions: {
-      userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-      reactions: { type: String, enum: ['like', 'love', 'haha', 'wow', 'sad', 'angry'] },
-      reactionAt: { type: Date, default: Date.now }
-    },
+    userReactions: [
+      {
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        reactions: { type: String, enum: ['like', 'love', 'haha', 'wow', 'sad', 'angry'] },
+        reactionAt: { type: Date, default: Date.now }
+      }
+    ],
     visibility: { type: String, enum: ['public', 'friends', 'private'], default: 'public' },
-    shares: {
-      userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-      sharedAt: { type: Date, default: Date.now }
-    },
+    shares: [
+      {
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        sharedAt: { type: Date, default: Date.now }
+      }
+    ],
     sharePostId: { type: mongoose.Schema.Types.ObjectId, ref: 'Post', default: null }
   },
   {

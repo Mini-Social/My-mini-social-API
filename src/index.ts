@@ -6,10 +6,12 @@ import { env } from './constants/enviroments'
 import HandleError from './middlewares/handleError'
 import Router from './routes/v1/index.routes'
 import { connectToDatabase } from './config/mongodb'
+import path from 'path'
 const app: express.Application = express()
 // Port
 const port: number = env.PORT
 // Middleware
+app.use(express.static(path.join(__dirname, '../public')))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cors())
