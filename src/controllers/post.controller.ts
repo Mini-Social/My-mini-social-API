@@ -108,7 +108,7 @@ export const GetPostById = AsyncHandler(async (req: Request, res: Response, next
   if (!idValid) {
     return next(new AppError('Invalid ID', 400))
   }
-  const post = await PostModel.findById(postId)
+  const post = await PostModel.findOne({ _id: postId, deleted: false })
   if (!post) {
     return next(new AppError(`Not Found post: ${postId}`, 400))
   }
@@ -117,8 +117,16 @@ export const GetPostById = AsyncHandler(async (req: Request, res: Response, next
     data: { post }
   })
 })
+export const GetPostByUserId = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { id } = res.locals.user
+  const posts = await PostModel.find({ author: id, deleted: false })
+  res.status(200).json({
+    status: 'success',
+    data: { posts }
+  })
+})
 export const GetAllPost = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  const posts = await PostModel.find()
+  const posts = await PostModel.find({ deleted: false })
   res.status(200).json({
     status: 'success',
     data: { posts }
