@@ -154,7 +154,32 @@ export const GetTrashPost = AsyncHandler(async (req: Request, res: Response, nex
     data: { posts }
   })
 })
-
+export const RestorePost = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { postId } = req.params
+  const { id } = res.locals.user
+  const idValid = CheckInvalidId(postId)
+  if (!idValid) {
+    return next(new AppError('Invalid ID', 400))
+  }
+  const post = await PostModel.findById(postId).select('images author deleted')
+  if (!post) {
+    return next(new AppError(`Not Found post: ${postId}`, 400))
+  }
+  if (id !== String(post.author)) {
+    return next(new AppError('You do not have permission to restore this post.', 400))
+  }
+  if (!post.deleted) {
+    return next(new AppError('This post is now public.', 400))
+  }
+  const restorePost = await PostModel.findByIdAndUpdate(postId, { deleted: false }, { new: true })
+  if (!restorePost) {
+    return next(new AppError(`Could not restore this post: ${postId}`, 400))
+  }
+  res.status(200).json({
+    status: 'success',
+    data: { restorePost }
+  })
+})
 function CheckInvalidId(id: any) {
   return mongoose.Types.ObjectId.isValid(id)
 }

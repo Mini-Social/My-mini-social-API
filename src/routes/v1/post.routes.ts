@@ -4,6 +4,7 @@ import {
   GetAllPost,
   GetPostById,
   GetTrashPost,
+  RestorePost,
   SavePostImages,
   SoftDeletePost,
   UpdatePost,
@@ -17,6 +18,7 @@ Router.get('/getPost/:postId', authMiddleware, GetPostById)
 Router.get('/getAllPost', authMiddleware, GetAllPost)
 Router.get('/getTrashPost', authMiddleware, GetTrashPost)
 Router.post('/addPost', authMiddleware, UploadPostImages, SavePostImages, AddPost)
+Router.post('/restorePost/:postId', authMiddleware, RestorePost)
 Router.put('/updatePost/:postId', authMiddleware, UploadPostImages, SavePostImages, UpdatePost)
 Router.delete('/softDeletePost/:postId', authMiddleware, SoftDeletePost)
 Router.delete('/deletePost/:postId', authMiddleware, DeletePost)
