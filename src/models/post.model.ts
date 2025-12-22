@@ -23,11 +23,13 @@ interface IPost extends mongoose.Document {
   shares: [
     {
       userId: mongoose.Types.ObjectId
+      sharePostId: mongoose.Types.ObjectId
       sharedAt: Date
     }
   ]
   sharePostId: mongoose.Types.ObjectId | null
   deleted: boolean
+  deletedAt: Date
 }
 const PostSchema = new mongoose.Schema<IPost>(
   {
@@ -53,11 +55,13 @@ const PostSchema = new mongoose.Schema<IPost>(
     shares: [
       {
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        sharePostId: { type: mongoose.Schema.Types.ObjectId, ref: 'Post' },
         sharedAt: { type: Date, default: Date.now }
       }
     ],
     sharePostId: { type: mongoose.Schema.Types.ObjectId, ref: 'Post', default: null },
-    deleted: { type: Boolean, default: false }
+    deleted: { type: Boolean, default: false },
+    deletedAt: { type: Date }
   },
   {
     timestamps: true

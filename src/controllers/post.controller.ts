@@ -146,7 +146,7 @@ export const SoftDeletePost = AsyncHandler(async (req: Request, res: Response, n
   if (id !== String(post.author)) {
     return next(new AppError('You do not have permission to update this post', 400))
   }
-  const deletePost = await PostModel.findByIdAndUpdate(postId, { deleted: true })
+  const deletePost = await PostModel.findByIdAndUpdate(postId, { deleted: true, deletedAt: Date.now() })
   if (!deletePost) {
     return next(new AppError(`Could not delete post: ${postId}`, 400))
   }
