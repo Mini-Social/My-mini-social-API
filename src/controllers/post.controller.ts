@@ -124,6 +124,29 @@ export const GetAllPost = AsyncHandler(async (req: Request, res: Response, next:
     data: { posts }
   })
 })
+export const SoftDeletePost = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { postId } = req.params
+  const { id } = res.locals.user
+  const idValid = CheckInvalidId(postId)
+  if (!idValid) {
+    return next(new AppError('Invalid ID', 400))
+  }
+  const post = await PostModel.findOne({ _id: postId, deleted: false }).select('images author')
+  if (!post) {
+    return next(new AppError(`Not Found post: ${postId}`, 400))
+  }
+  if (id !== String(post.author)) {
+    return next(new AppError('You do not have permission to update this post', 400))
+  }
+  const deletePost = await PostModel.findByIdAndUpdate(postId, { deleted: true })
+  if (!deletePost) {
+    return next(new AppError(`Could not delete post: ${postId}`, 400))
+  }
+  res.status(200).json({
+    message: 'Successfully deleted.'
+  })
+})
+
 function CheckInvalidId(id: any) {
   return mongoose.Types.ObjectId.isValid(id)
 }

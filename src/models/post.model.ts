@@ -23,6 +23,7 @@ interface IPost extends mongoose.Document {
     sharedAt: Date
   }
   sharePostId: mongoose.Types.ObjectId | null
+  deleted: boolean
 }
 const PostSchema = new mongoose.Schema<IPost>(
   {
@@ -51,7 +52,8 @@ const PostSchema = new mongoose.Schema<IPost>(
         sharedAt: { type: Date, default: Date.now }
       }
     ],
-    sharePostId: { type: mongoose.Schema.Types.ObjectId, ref: 'Post', default: null }
+    sharePostId: { type: mongoose.Schema.Types.ObjectId, ref: 'Post', default: null },
+    deleted: { type: Boolean, default: false }
   },
   {
     timestamps: true
