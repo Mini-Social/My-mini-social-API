@@ -32,7 +32,7 @@ interface IPost extends mongoose.Document {
 const PostSchema = new mongoose.Schema<IPost>(
   {
     author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    content: { type: String, required: true },
+    content: { type: String },
     images: Array<string>,
     reactions: {
       like: { type: Number, default: 0 },

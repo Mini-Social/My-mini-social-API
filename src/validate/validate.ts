@@ -27,3 +27,8 @@ export const postSchema = zod.object({
   visibility: zod.enum(['public', 'friend', 'private']).optional().default('public'),
   sharePostId: zod.string().nullable().optional()
 })
+export const shareSchema = zod.object({
+  content: zod.string().optional(),
+  visibility: zod.enum(['public', 'friend', 'private']).default('public').optional(),
+  sharePostId: zod.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid Post ID')
+})
