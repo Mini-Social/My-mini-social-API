@@ -12,16 +12,20 @@ interface IPost extends mongoose.Document {
     sad: number
     angry: number
   }
-  userReactions: {
-    userId: mongoose.Types.ObjectId
-    reactions: string
-    reactionAt: Date
-  }
+  userReactions: [
+    {
+      userId: mongoose.Types.ObjectId
+      reactions: string
+      reactionAt: Date
+    }
+  ]
   visibility: string
-  shares: {
-    userId: mongoose.Types.ObjectId
-    sharedAt: Date
-  }
+  shares: [
+    {
+      userId: mongoose.Types.ObjectId
+      sharedAt: Date
+    }
+  ]
   sharePostId: mongoose.Types.ObjectId | null
   deleted: boolean
 }
