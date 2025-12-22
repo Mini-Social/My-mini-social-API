@@ -3,6 +3,7 @@ import {
   DeletePost,
   GetAllPost,
   GetPostById,
+  GetTrashPost,
   SavePostImages,
   SoftDeletePost,
   UpdatePost,
@@ -14,6 +15,7 @@ const Router = express.Router()
 
 Router.get('/getPost/:postId', authMiddleware, GetPostById)
 Router.get('/getAllPost', authMiddleware, GetAllPost)
+Router.get('/getTrashPost', authMiddleware, GetTrashPost)
 Router.post('/addPost', authMiddleware, UploadPostImages, SavePostImages, AddPost)
 Router.put('/updatePost/:postId', authMiddleware, UploadPostImages, SavePostImages, UpdatePost)
 Router.delete('/softDeletePost/:postId', authMiddleware, SoftDeletePost)

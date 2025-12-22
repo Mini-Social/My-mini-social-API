@@ -146,6 +146,14 @@ export const SoftDeletePost = AsyncHandler(async (req: Request, res: Response, n
     message: 'Successfully deleted.'
   })
 })
+export const GetTrashPost = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { id } = res.locals.user
+  const posts = await PostModel.find({ author: id, deleted: true })
+  res.status(200).json({
+    status: 'success',
+    data: { posts }
+  })
+})
 
 function CheckInvalidId(id: any) {
   return mongoose.Types.ObjectId.isValid(id)
