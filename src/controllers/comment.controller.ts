@@ -29,7 +29,23 @@ export const AddComment = AsyncHandler(async (req: Request, res: Response, next:
     data: { comment: newComment }
   })
 })
-
+export const UpdateComment = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { id } = res.locals.user
+  const { commentId } = req.params
+  const existComment = await CommentModel.findById(commentId)
+  if (!existComment) {
+    return next(new AppError('No Found Comment', 404))
+  }
+  if (id !== String(existComment.userId)) {
+    return next(new AppError(`You do not have permission to update comment: ${commentId}`, 404))
+  }
+  const body = commentSchema.parse(req.body)
+  const updateComment = await CommentModel.findByIdAndUpdate(commentId, body, { new: true })
+  res.status(200).json({
+    status: 'success',
+    data: { comment: updateComment }
+  })
+})
 export const UploadPostImage = upload.single('image')
 export const SavePostImage = async (req: Request, res: Response, next: NextFunction) => {
   if (!req.file) return next()
