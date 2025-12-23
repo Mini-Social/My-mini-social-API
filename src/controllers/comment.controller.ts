@@ -88,7 +88,32 @@ export const DeleteComment = AsyncHandler(async (req: Request, res: Response, ne
     message: 'Successfully delete comment'
   })
 })
-
+export const GetMainComments = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { postId } = req.params
+  const existPost = await PostModel.findOne({ _id: postId, deleted: false })
+  if (!existPost) {
+    return next(new AppError(`No Found Post with id: ${postId}`, 400))
+  }
+  const comments = await CommentModel.find({ postId: postId, parentCommentId: null, deleted: false })
+    .populate('userId', 'username avatar')
+    .sort('createdAt')
+  res.status(200).json({
+    status: 'success',
+    length: comments.length,
+    data: { comments }
+  })
+})
+export const GetCommentsReplies = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { parentCommentId } = req.params
+  const repliesComments = await CommentModel.find({ parentCommentId: parentCommentId, deleted: false })
+    .populate('userId', 'username avatar')
+    .sort('createdAt')
+  res.status(200).json({
+    status: 'success',
+    length: repliesComments.length,
+    data: { repliesComments }
+  })
+})
 export const UploadCommentImage = upload.single('image')
 export const SaveCommentImage = async (req: Request, res: Response, next: NextFunction) => {
   if (!req.file) return next()
