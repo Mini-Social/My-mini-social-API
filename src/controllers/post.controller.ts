@@ -169,7 +169,7 @@ export const RestorePost = AsyncHandler(async (req: Request, res: Response, next
   if (!idValid) {
     return next(new AppError('Invalid ID', 400))
   }
-  const post = await PostModel.findById(postId).select('images author deleted')
+  const post = await PostModel.findById(postId).select('images author deleted sharePostId')
   if (!post) {
     return next(new AppError(`Not Found post: ${postId}`, 400))
   }
@@ -179,13 +179,22 @@ export const RestorePost = AsyncHandler(async (req: Request, res: Response, next
   if (!post.deleted) {
     return next(new AppError('This post is now public.', 400))
   }
-  const restorePost = await PostModel.findByIdAndUpdate(postId, { deleted: false }, { new: true })
-  if (!restorePost) {
-    return next(new AppError(`Could not restore this post: ${postId}`, 400))
+  post.deleted = false
+  post.deletedAt = null
+  await post.save()
+  if (post.sharePostId) {
+    const data = {
+      userId: id,
+      sharePostId: post._id,
+      shareAt: Date.now()
+    }
+    await PostModel.findByIdAndUpdate(post.sharePostId, {
+      $push: { shares: data }
+    })
   }
   res.status(200).json({
     status: 'success',
-    data: { restorePost }
+    message: `Succesfully restore post: ${post._id}`
   })
 })
 export const HandleReactions = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {

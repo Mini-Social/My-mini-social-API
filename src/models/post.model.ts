@@ -29,7 +29,7 @@ interface IPost extends mongoose.Document {
   ]
   sharePostId: mongoose.Types.ObjectId | null
   deleted: boolean
-  deletedAt: Date
+  deletedAt: Date | null
 }
 const PostSchema = new mongoose.Schema<IPost>(
   {
