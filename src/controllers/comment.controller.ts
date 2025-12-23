@@ -11,16 +11,19 @@ import { v4 as uuidv4 } from 'uuid'
 export const AddComment = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { id } = res.locals.user
   const { postId } = req.params
+  const { parentCommentId } = req.body
   const existPost = await PostModel.findById(postId)
   if (!existPost) {
     return next(new AppError('No Found Post', 404))
   }
   const body = commentSchema.parse(req.body)
-  const newComment = await CommentModel.create({
+  const data = {
     postId,
     userId: id,
-    ...body
-  })
+    ...body,
+    parentCommentId: parentCommentId || null
+  }
+  const newComment = await CommentModel.create(data)
   res.status(200).json({
     status: 'success',
     data: { comment: newComment }
