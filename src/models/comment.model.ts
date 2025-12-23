@@ -14,17 +14,19 @@ interface IComment extends mongoose.Document {
     sad: number
     angry: number
   }
-  userReactions: {
-    userId: mongoose.Types.ObjectId
-    reactions: string
-    reactionAt: Date
-  }
+  userReactions: [
+    {
+      userId: mongoose.Types.ObjectId
+      reactions: string
+      reactionAt: Date
+    }
+  ]
 }
 const CommentSchema = new mongoose.Schema<IComment>(
   {
     postId: { type: mongoose.Schema.Types.ObjectId, ref: 'Post', required: true },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    content: { type: String, required: true },
+    content: { type: String },
     image: String,
     parentCommentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Comment', default: null },
     reactions: {
@@ -35,11 +37,13 @@ const CommentSchema = new mongoose.Schema<IComment>(
       sad: { type: Number, default: 0 },
       angry: { type: Number, default: 0 }
     },
-    userReactions: {
-      userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-      reactions: { type: String, enum: ['like', 'love', 'haha', 'wow', 'sad', 'angry'] },
-      reactionAt: { type: Date, default: Date.now }
-    }
+    userReactions: [
+      {
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        reactions: { type: String, enum: ['like', 'love', 'haha', 'wow', 'sad', 'angry'] },
+        reactionAt: { type: Date, default: Date.now }
+      }
+    ]
   },
   {
     timestamps: true

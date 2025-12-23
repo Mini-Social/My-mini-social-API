@@ -31,3 +31,7 @@ export const shareSchema = zod.object({
   content: zod.string().optional(),
   visibility: zod.enum(['public', 'friend', 'private']).default('public').optional()
 })
+export const commentSchema = zod.object({
+  content: zod.string().optional(),
+  image: zod.string().optional()
+})
