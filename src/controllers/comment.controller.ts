@@ -16,6 +16,10 @@ export const AddComment = AsyncHandler(async (req: Request, res: Response, next:
   if (!existPost) {
     return next(new AppError('No Found Post', 404))
   }
+  const existComment = await CommentModel.findById(parentCommentId)
+  if (!existComment) {
+    return next(new AppError('No Found Comment', 404))
+  }
   const body = commentSchema.parse(req.body)
   const data = {
     postId,

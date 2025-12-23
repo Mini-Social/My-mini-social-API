@@ -4,7 +4,7 @@ interface IComment extends mongoose.Document {
   postId: mongoose.Types.ObjectId
   userId: mongoose.Types.ObjectId
   content: string
-  image: string
+  image: string | null
   parentCommentId: mongoose.Types.ObjectId | null
   reactions: {
     like: number
@@ -27,7 +27,7 @@ const CommentSchema = new mongoose.Schema<IComment>(
     postId: { type: mongoose.Schema.Types.ObjectId, ref: 'Post', required: true },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     content: { type: String },
-    image: String,
+    image: { type: String, default: null },
     parentCommentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Comment', default: null },
     reactions: {
       like: { type: Number, default: 0 },
