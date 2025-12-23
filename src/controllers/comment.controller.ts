@@ -49,7 +49,7 @@ export const AddComment = AsyncHandler(async (req: Request, res: Response, next:
 export const UpdateComment = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { id } = res.locals.user
   const { commentId } = req.params
-  const existComment = await CommentModel.findById(commentId)
+  const existComment = await CommentModel.findOne({ _id: commentId, deleted: false })
   if (!existComment) {
     return next(new AppError('No Found Comment', 404))
   }
@@ -63,8 +63,34 @@ export const UpdateComment = AsyncHandler(async (req: Request, res: Response, ne
     data: { comment: updateComment }
   })
 })
-export const UploadPostImage = upload.single('image')
-export const SavePostImage = async (req: Request, res: Response, next: NextFunction) => {
+export const DeleteComment = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { id } = res.locals.user
+  const { commentId } = req.params
+  const existComment = await CommentModel.findOne({ _id: commentId, deleted: false }).select(
+    'userId content deleted deletedAt image'
+  )
+  if (!existComment) {
+    return next(new AppError('No Found Comment', 404))
+  }
+  if (id !== String(existComment.userId)) {
+    return next(new AppError(`You do not have permission to delete comment: ${commentId}`, 404))
+  }
+  if (existComment.image) {
+    CleanImages([existComment.image])
+  }
+  existComment.deleted = true
+  existComment.deletedAt = new Date(Date.now())
+  existComment.content = 'Bình luận này đã bị xóa'
+  existComment.image = null
+  await existComment.save()
+  res.status(200).json({
+    status: 'success',
+    message: 'Successfully delete comment'
+  })
+})
+
+export const UploadCommentImage = upload.single('image')
+export const SaveCommentImage = async (req: Request, res: Response, next: NextFunction) => {
   if (!req.file) return next()
   const targetDir = path.join(__dirname, '../../public/img/posts')
   const commentId = uuidv4()

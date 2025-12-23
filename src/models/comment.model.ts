@@ -21,6 +21,8 @@ interface IComment extends mongoose.Document {
       reactionAt: Date
     }
   ]
+  deleted: boolean
+  deletedAt: Date | null
 }
 const CommentSchema = new mongoose.Schema<IComment>(
   {
@@ -43,7 +45,9 @@ const CommentSchema = new mongoose.Schema<IComment>(
         reactions: { type: String, enum: ['like', 'love', 'haha', 'wow', 'sad', 'angry'] },
         reactionAt: { type: Date, default: Date.now }
       }
-    ]
+    ],
+    deleted: { type: Boolean, default: false },
+    deletedAt: Date
   },
   {
     timestamps: true
