@@ -3,6 +3,7 @@ import {
   DeleteComment,
   GetCommentsReplies,
   GetMainComments,
+  HandleReactions,
   SaveCommentImage,
   UpdateComment,
   UploadCommentImage
@@ -15,5 +16,6 @@ Router.get('/getComments/:postId', GetMainComments)
 Router.get('/getCommentsReplies/:parentCommentId', GetCommentsReplies)
 Router.post('/addComment/:postId', authMiddleware, UploadCommentImage, SaveCommentImage, AddComment)
 Router.put('/updateComment/:commentId', authMiddleware, UpdateComment)
+Router.put('/reactions/:commentId/:action', authMiddleware, HandleReactions)
 Router.delete('/deleteComment/:commentId', authMiddleware, DeleteComment)
 export default Router

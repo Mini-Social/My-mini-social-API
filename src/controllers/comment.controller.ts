@@ -9,6 +9,7 @@ import sharp from 'sharp'
 import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import { CleanImages } from '@/utils/CleanImages'
+import mongoose from 'mongoose'
 export const AddComment = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const deleteUploadedFile = () => {
     if (req.file) CleanImages([req.body.image])
@@ -114,6 +115,95 @@ export const GetCommentsReplies = AsyncHandler(async (req: Request, res: Respons
     data: { repliesComments }
   })
 })
+export const HandleReactions = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { id } = res.locals.user
+  const { commentId, action } = req.params
+  const idValid = CheckInvalidId(commentId)
+  if (!idValid) {
+    return next(new AppError('Invalid ID', 400))
+  }
+  const reactionsAdd = ['like', 'love', 'haha', 'wow', 'sad', 'angry']
+  const reactionsRemove = ['unlike', 'unlove', 'unhaha', 'unwow', 'unsad', 'unangry']
+
+  if (!reactionsAdd.concat(reactionsRemove).includes(action)) {
+    return next(new AppError('Invalid Action', 400))
+  }
+  const add = async (action: string) => {
+    const comment = await CommentModel.findOne({ _id: commentId, deleted: false }).select('reactions userReactions')
+    if (!comment) {
+      return next(new AppError(`No comment found with ID: ${commentId}`, 400))
+    }
+    const exitsUser = comment.userReactions.some((reaction) => String(reaction.userId) === id)
+    if (!exitsUser) {
+      const data = {
+        userId: id,
+        reactions: action,
+        reactionAt: Date.now()
+      }
+      const updateComment = await CommentModel.findByIdAndUpdate(
+        comment._id,
+        {
+          $inc: { [`reactions.${action}`]: 1 },
+          $push: { userReactions: data }
+        },
+        { new: true }
+      )
+      if (!updateComment) {
+        return next(new AppError(`Could not ${action} this post`, 400))
+      }
+      return updateComment
+    }
+    return null
+  }
+  const remove = async (action: string) => {
+    const comment = await CommentModel.findOne({ _id: commentId, deleted: false }).select('reactions userReactions')
+    if (!comment) {
+      return next(new AppError(`No comment found with ID: ${commentId}`, 400))
+    }
+    const exitsUser = comment.userReactions.some(
+      (reaction) => String(reaction.userId) === id && reaction.reactions === action
+    )
+    if (exitsUser) {
+      const updateComment = await CommentModel.findByIdAndUpdate(
+        comment._id,
+        {
+          $inc: { [`reactions.${action}`]: -1 },
+          $pull: { userReactions: { userId: id, reactions: action } }
+        },
+        {
+          new: true
+        }
+      )
+      if (!updateComment) {
+        return next(new AppError(`Could not ${action} post: ${commentId}`, 400))
+      }
+      return updateComment
+    }
+    return null
+  }
+  if (reactionsAdd.includes(action)) {
+    const commentAfferReaction = await add(action)
+    if (commentAfferReaction) {
+      res.status(200).json({
+        status: 'success',
+        data: { comment: commentAfferReaction }
+      })
+      return
+    }
+    return next(new AppError(`Could not reaction comment: ${commentId}`, 400))
+  }
+  if (reactionsRemove.includes(action)) {
+    const commentAfferUnReaction = await remove(action.slice(2))
+    if (commentAfferUnReaction) {
+      res.status(200).json({
+        status: 'success',
+        data: { comment: commentAfferUnReaction }
+      })
+      return
+    }
+    return next(new AppError(`Could not remove reaction comment: ${commentId}`, 400))
+  }
+})
 export const UploadCommentImage = upload.single('image')
 export const SaveCommentImage = async (req: Request, res: Response, next: NextFunction) => {
   if (!req.file) return next()
@@ -123,4 +213,7 @@ export const SaveCommentImage = async (req: Request, res: Response, next: NextFu
   await sharp(req.file.buffer).toFormat('jpeg').jpeg({ quality: 90 }).toFile(`${targetDir}/${fileName}`)
   req.body.image = fileName
   next()
+}
+function CheckInvalidId(id: any) {
+  return mongoose.Types.ObjectId.isValid(id)
 }
