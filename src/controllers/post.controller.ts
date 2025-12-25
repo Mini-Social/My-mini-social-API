@@ -270,6 +270,7 @@ export const HandleReactions = AsyncHandler(async (req: Request, res: Response, 
         status: 'success',
         data: { post: postAfterReaction }
       })
+      return
     }
     return next(new AppError(`Could not reaction post: ${postId}`, 400))
   }
@@ -280,6 +281,7 @@ export const HandleReactions = AsyncHandler(async (req: Request, res: Response, 
         status: 'success',
         data: { post: postAfterUnReaction }
       })
+      return
     }
     return next(new AppError(`Could not remove reaction post: ${postId}`, 400))
   }
