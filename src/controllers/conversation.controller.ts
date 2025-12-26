@@ -136,6 +136,10 @@ export const ToggleGroupMember = AsyncHandler(async (req: Request, res: Response
   if (action === 'add') {
     updateQuery = { $addToSet: { members: { $each: userIds } } }
   } else if (action === 'remove') {
+    const isAllMembers = userIds.every((id) => convo.members.includes(id))
+    if (!isAllMembers) {
+      return next(new AppError('Only group members can remove.', 400))
+    }
     updateQuery = { $pull: { members: { $in: userIds } } }
   } else if (action === 'makeAdmin') {
     const isAllMembers = userIds.every((id) => convo.members.includes(id))
@@ -167,6 +171,22 @@ export const ToggleGroupMember = AsyncHandler(async (req: Request, res: Response
   res.status(200).json({
     status: 'success',
     data: { conversation: updateConversation }
+  })
+})
+export const GetConversation = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { id: myId } = res.locals.user
+
+  const conversations = await ConversationModel.find({
+    members: { $in: myId }
+  })
+    .sort({ lastMessageAt: -1 })
+    .populate('members', 'firstName lastName avatar isOnline')
+    .populate('groupAdmin', 'firstName lastName avatar isOnline')
+
+  res.status(200).json({
+    status: 'success',
+    length: conversations.length,
+    data: { conversations }
   })
 })
 export const UploadConversationImage = upload.single('avatar')
