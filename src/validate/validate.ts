@@ -35,3 +35,7 @@ export const commentSchema = zod.object({
   content: zod.string().optional(),
   image: zod.string().optional()
 })
+export const conversationSchema = zod.object({
+  groupName: zod.string().optional(),
+  avatar: zod.string().optional()
+})

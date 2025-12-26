@@ -4,7 +4,12 @@ import AppError from '@/utils/AppError'
 import ConversationModel from '@/models/conversation.model'
 import mongoose from 'mongoose'
 import UserModel from '@/models/user.model'
-
+import { conversationSchema } from '@/validate/validate'
+import { upload } from '@/services/multer'
+import path from 'path'
+import { v4 as uuidv4 } from 'uuid'
+import sharp from 'sharp'
+import { CleanImages } from '@/utils/CleanImages'
 export const CreatePrivateChat = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { userId } = req.params
   const { id } = res.locals.user
@@ -67,8 +72,8 @@ export const CreateGroupChat = AsyncHandler(async (req: Request, res: Response, 
     members: uniqueMembers,
     type: 'group',
     groupName: groupName || newGroupName,
-    groupAdmin: myId,
-    lastMessage: 'Bạn đã tạo nhóm này.'
+    groupAdmin: [myId],
+    lastMessage: 'Đã tạo nhóm'
   }
   const newConversation = await ConversationModel.create(data)
   if (!newConversation) {
@@ -79,6 +84,46 @@ export const CreateGroupChat = AsyncHandler(async (req: Request, res: Response, 
     data: { conversation: newConversation }
   })
 })
+export const UpdateGroupChat = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const deleteUploadedFile = () => {
+    if (req.file) CleanImages([req.body.avatar])
+  }
+  const { conversationId } = req.params
+  const { id } = res.locals.user
+  const idValid = CheckInvalidId(conversationId)
+  if (!idValid) {
+    deleteUploadedFile()
+    return next(new AppError('Invalid ID', 400))
+  }
+  const isAdmin = await ConversationModel.findOne({
+    groupAdmin: { $in: id },
+    type: 'group'
+  })
+  if (!isAdmin) {
+    deleteUploadedFile()
+    return next(new AppError('You are not Admin', 400))
+  }
+  const body = conversationSchema.parse(req.body)
+  const update = await ConversationModel.findByIdAndUpdate(conversationId, body, { new: true })
+  if (!update) {
+    deleteUploadedFile()
+    return next(new AppError('Could not update conversation', 400))
+  }
+  res.status(200).json({
+    status: 'success',
+    data: { conversation: update }
+  })
+})
+export const UploadConversationImage = upload.single('avatar')
+export const SaveConversationImage = async (req: Request, res: Response, next: NextFunction) => {
+  if (!req.file) return next()
+  const targetDir = path.join(__dirname, '../../public/img/conversations')
+  const conversationId = uuidv4()
+  const fileName = `conversationId-${conversationId}-${Date.now()}.jpeg`
+  await sharp(req.file.buffer).toFormat('jpeg').jpeg({ quality: 90 }).toFile(`${targetDir}/${fileName}`)
+  req.body.avatar = fileName
+  next()
+}
 function CheckInvalidId(id: any) {
   return mongoose.Types.ObjectId.isValid(id)
 }
