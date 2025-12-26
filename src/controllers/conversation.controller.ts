@@ -3,7 +3,7 @@ import AsyncHandler from '@/utils/AsyncHandler'
 import AppError from '@/utils/AppError'
 import ConversationModel from '@/models/conversation.model'
 import mongoose from 'mongoose'
-import UserModel, { IUser } from '@/models/user.model'
+import UserModel from '@/models/user.model'
 
 export const CreatePrivateChat = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { userId } = req.params
@@ -12,10 +12,14 @@ export const CreatePrivateChat = AsyncHandler(async (req: Request, res: Response
   if (!idValid) {
     return next(new AppError('Invalid ID', 400))
   }
+  const existUser = await UserModel.findById(userId).select('firstName lastName')
+  if (!existUser) {
+    return next(new AppError(`Could not found user with iD: ${userId}`, 404))
+  }
   const existConversation = await ConversationModel.findOne({
     members: { $all: [id, userId] },
     type: 'private'
-  }).populate('members', 'name avatar isOnline')
+  }).populate('members', 'firstName lastName avatar isOnline')
   if (existConversation) {
     res.status(200).json({
       status: 'success',
@@ -25,7 +29,8 @@ export const CreatePrivateChat = AsyncHandler(async (req: Request, res: Response
   }
   const data = {
     members: [id, userId],
-    type: 'private'
+    type: 'private',
+    groupName: `${existUser.firstName} ${existUser.lastName}`
   }
   const newConversation = await ConversationModel.create(data)
   if (!newConversation) {
@@ -33,7 +38,7 @@ export const CreatePrivateChat = AsyncHandler(async (req: Request, res: Response
   }
   const fullConversation = await ConversationModel.findById(newConversation._id).populate(
     'members',
-    'name avatar isOnline'
+    'firstName lastName avatar isOnline'
   )
   res.status(200).json({
     status: 'success',
@@ -50,7 +55,6 @@ export const CreateGroupChat = AsyncHandler(async (req: Request, res: Response, 
   }
   const uniqueMembers = [...new Set(newMembers)]
   const count = uniqueMembers.length
-  console.log(newMembers)
   if (count < 3) {
     return next(new AppError('Not enough people to create a new group.', 400))
   }
