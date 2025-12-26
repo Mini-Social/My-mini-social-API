@@ -75,13 +75,17 @@ export const CreateGroupChat = AsyncHandler(async (req: Request, res: Response, 
     groupAdmin: [myId],
     lastMessage: 'Đã tạo nhóm'
   }
+
   const newConversation = await ConversationModel.create(data)
   if (!newConversation) {
     return next(new AppError('Could not create new conversation', 400))
   }
+  const fullConversation = await ConversationModel.findById(newConversation._id)
+    .populate('members', 'firstName lastName avatar isOnline')
+    .populate('groupAdmin', 'firstName lastName avatar isOnline')
   res.status(200).json({
     status: 'success',
-    data: { conversation: newConversation }
+    data: { conversation: fullConversation }
   })
 })
 export const UpdateGroupChat = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
@@ -105,6 +109,8 @@ export const UpdateGroupChat = AsyncHandler(async (req: Request, res: Response, 
   }
   const body = conversationSchema.parse(req.body)
   const update = await ConversationModel.findByIdAndUpdate(conversationId, body, { new: true })
+    .populate('members', 'firstName lastName avatar isOnline')
+    .populate('groupAdmin', 'firstName lastName avatar isOnline')
   if (!update) {
     deleteUploadedFile()
     return next(new AppError('Could not update conversation', 400))
@@ -112,6 +118,36 @@ export const UpdateGroupChat = AsyncHandler(async (req: Request, res: Response, 
   res.status(200).json({
     status: 'success',
     data: { conversation: update }
+  })
+})
+export const ToggleGroupMember = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { userIds } = req.body
+  const { conversationId, action } = req.params
+  const { id } = res.locals.user
+  if (!Array.isArray(userIds) || userIds.length === 0) {
+    res.status(400).json({ message: 'Invalid members' })
+    return
+  }
+  const convo = await ConversationModel.findById(conversationId)
+  if (!convo?.groupAdmin.includes(id)) {
+    return next(new AppError('You are not admin in this group', 400))
+  }
+  let updateQuery = {}
+  if (action === 'add') {
+    updateQuery = { $addToSet: { members: { $each: userIds } } }
+  } else if (action === 'remove') {
+    updateQuery = { $pull: { members: { $in: userIds } } }
+  } else {
+    res.status(400).json({ message: 'Invalid action' })
+    return
+  }
+  const updateConversation = await ConversationModel.findByIdAndUpdate(conversationId, updateQuery, { new: true })
+    .populate('members', 'firstName lastName avatar isOnline')
+    .populate('groupAdmin', 'firstName lastName avatar isOnline')
+
+  res.status(200).json({
+    status: 'success',
+    data: { conversation: updateConversation }
   })
 })
 export const UploadConversationImage = upload.single('avatar')

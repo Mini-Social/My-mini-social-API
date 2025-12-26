@@ -2,6 +2,7 @@ import {
   CreateGroupChat,
   CreatePrivateChat,
   SaveConversationImage,
+  ToggleGroupMember,
   UpdateGroupChat,
   UploadConversationImage
 } from '@/controllers/conversation.controller'
@@ -18,4 +19,5 @@ Router.put(
   SaveConversationImage,
   UpdateGroupChat
 )
+Router.put('/toggleMember/:conversationId/:action', authMiddleware, ToggleGroupMember)
 export default Router
