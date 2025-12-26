@@ -137,6 +137,25 @@ export const ToggleGroupMember = AsyncHandler(async (req: Request, res: Response
     updateQuery = { $addToSet: { members: { $each: userIds } } }
   } else if (action === 'remove') {
     updateQuery = { $pull: { members: { $in: userIds } } }
+  } else if (action === 'makeAdmin') {
+    const isAllMembers = userIds.every((id) => convo.members.includes(id))
+    if (!isAllMembers) {
+      return next(new AppError('Only group members can be admins.', 400))
+    }
+    updateQuery = { $addToSet: { groupAdmin: { $each: userIds } } }
+  } else if (action === 'removeAdmin') {
+    if (userIds.includes(id)) {
+      return next(new AppError('Could not remove admin yourseft', 400))
+    }
+    const remainingAdmin = convo.groupAdmin.filter((id) => !userIds.includes(id.toString()))
+    if (remainingAdmin.length === 0) {
+      return next(new AppError('The group must have at least 1 admin.', 400))
+    }
+    const isAllAdmins = userIds.every((id) => convo.groupAdmin.includes(id))
+    if (!isAllAdmins) {
+      return next(new AppError('Only group admins can remove.', 400))
+    }
+    updateQuery = { $pull: { groupAdmin: { $in: userIds } } }
   } else {
     res.status(400).json({ message: 'Invalid action' })
     return
