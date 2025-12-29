@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken'
 import { Request, Response, NextFunction } from 'express'
 import AppError from '@/utils/AppError'
 import { env } from '@/constants/enviroments'
+import UserModel from '@/models/user.model'
 export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
   let token: string | undefined
   const authHeader = req.headers.authorization
@@ -18,6 +19,9 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
   if (!decoded) {
     return res.status(200).json()
   }
+  const { id: myId } = decoded as { id: string; role: string }
+  const info = await UserModel.findById(myId)
+  res.locals.info = info
   res.locals.user = decoded as { id: string; role: string }
   next()
 }

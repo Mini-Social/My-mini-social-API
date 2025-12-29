@@ -6,6 +6,7 @@ interface IConversation extends mongoose.Document {
   avatar: string
   groupAdmin: mongoose.Types.ObjectId[]
   lastMessage: string
+  lastSenderId: mongoose.Types.ObjectId | null
   lastMessageAt: Date
 }
 const ConversationSchema = new mongoose.Schema<IConversation>(
@@ -16,6 +17,7 @@ const ConversationSchema = new mongoose.Schema<IConversation>(
     avatar: String,
     groupAdmin: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     lastMessage: { type: String, default: '' },
+    lastSenderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     lastMessageAt: { type: Date, default: Date.now }
   },
   { timestamps: true }

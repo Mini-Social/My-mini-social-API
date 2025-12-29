@@ -10,6 +10,7 @@ import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import sharp from 'sharp'
 import { CleanImages } from '@/utils/CleanImages'
+import MessageModel from '@/models/message.model'
 export const CreatePrivateChat = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { userId } = req.params
   const { id } = res.locals.user
@@ -164,7 +165,27 @@ export const ToggleGroupMember = AsyncHandler(async (req: Request, res: Response
     res.status(400).json({ message: 'Invalid action' })
     return
   }
-  const updateConversation = await ConversationModel.findByIdAndUpdate(conversationId, updateQuery, { new: true })
+  const myName = res.locals.info.lastName
+  const affectedUsers = await UserModel.find({ _id: { $in: userIds } }).select('firstName lastName')
+  const affectedNames =
+    affectedUsers.length > 2
+      ? `${affectedUsers[0].firstName} ${affectedUsers[0].lastName} và ${affectedUsers.length - 1} người khác`
+      : affectedUsers.map((u) => `${u.firstName} ${u.lastName}`).join(', ')
+  let systemText = ''
+  if (action === 'add') systemText = `${myName} đã thêm ${affectedNames} vào nhóm.`
+  else if (action === 'remove') systemText = `${myName} đã xóa ${affectedNames} khỏi nhóm`
+  else if (action === 'makeAdmin') systemText = `${myName} đã bổ nhiệm ${affectedNames} làm quản trị viên`
+  else if (action === 'removeAdmin') systemText = `${myName} đã gỡ quyền quản trị viên của ${affectedNames}`
+  const updateConversation = await ConversationModel.findByIdAndUpdate(
+    conversationId,
+    {
+      ...updateQuery,
+      lastMessage: systemText,
+      lastSenderId: null,
+      lastMessageAt: Date.now()
+    },
+    { new: true }
+  )
     .populate('members', 'firstName lastName avatar isOnline')
     .populate('groupAdmin', 'firstName lastName avatar isOnline')
 
@@ -175,11 +196,14 @@ export const ToggleGroupMember = AsyncHandler(async (req: Request, res: Response
 })
 export const GetConversation = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { id: myId } = res.locals.user
-
+  const page = Number(req.query.page) | 1
+  const limit = Number(req.query.limit) | 15
   const conversations = await ConversationModel.find({
     members: { $in: myId }
   })
     .sort({ lastMessageAt: -1 })
+    .skip((page - 1) * limit)
+    .limit(limit)
     .populate('members', 'firstName lastName avatar isOnline')
     .populate('groupAdmin', 'firstName lastName avatar isOnline')
 
@@ -225,6 +249,23 @@ export const LeaveGroup = AsyncHandler(async (req: Request, res: Response, next:
   res.status(200).json({
     status: 'success',
     data: { conversation: updateConvo }
+  })
+})
+export const DeleteGroup = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { conversationId } = req.params
+  const { id: myId } = res.locals.user
+  const convo = await ConversationModel.findById(conversationId)
+  if (!convo) {
+    return next(new AppError('Group not found', 404))
+  }
+  if (convo.groupAdmin[0].toString() !== myId) {
+    return next(new AppError('Only the main admin can dissolve the group', 400))
+  }
+  await ConversationModel.findByIdAndDelete(conversationId)
+  await MessageModel.deleteMany({ conversationId })
+  res.status(200).json({
+    status: 'success',
+    message: 'Group and messages deleted'
   })
 })
 export const UploadConversationImage = upload.single('avatar')
