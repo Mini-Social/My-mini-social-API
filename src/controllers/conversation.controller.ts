@@ -34,8 +34,7 @@ export const CreatePrivateChat = AsyncHandler(async (req: Request, res: Response
   }
   const data = {
     members: [id, userId],
-    type: 'private',
-    groupName: `${existUser.firstName} ${existUser.lastName}`
+    type: 'private'
   }
   const newConversation = await ConversationModel.create(data)
   if (!newConversation) {
@@ -100,6 +99,7 @@ export const UpdateGroupChat = AsyncHandler(async (req: Request, res: Response, 
     return next(new AppError('Invalid ID', 400))
   }
   const isAdmin = await ConversationModel.findOne({
+    _id: conversationId,
     groupAdmin: { $in: id },
     type: 'group'
   })
@@ -187,6 +187,44 @@ export const GetConversation = AsyncHandler(async (req: Request, res: Response, 
     status: 'success',
     length: conversations.length,
     data: { conversations }
+  })
+})
+export const LeaveGroup = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { conversationId } = req.params
+  const { id: myId } = res.locals.user
+  const convo = await ConversationModel.findById(conversationId)
+  if (!convo) {
+    return next(new AppError('Group not found', 404))
+  }
+  if (!convo.members.includes(myId)) {
+    return next(new AppError('You are not member in this group', 400))
+  }
+  const isAdmin = convo.groupAdmin.includes(myId)
+  if (isAdmin && convo.groupAdmin.length === 1 && convo.members.length > 1) {
+    return next(new AppError('You are the last admin. Please appoint another before leaving.', 400))
+  }
+  const updateConvo = await ConversationModel.findByIdAndUpdate(
+    conversationId,
+    {
+      $pull: {
+        members: myId,
+        groupAdmin: myId
+      }
+    },
+    { new: true }
+  )
+
+  if (updateConvo && updateConvo.members.length === 0) {
+    await ConversationModel.findByIdAndDelete(conversationId)
+    res.status(200).json({
+      status: 'success',
+      message: 'Group Delete'
+    })
+    return
+  }
+  res.status(200).json({
+    status: 'success',
+    data: { conversation: updateConvo }
   })
 })
 export const UploadConversationImage = upload.single('avatar')

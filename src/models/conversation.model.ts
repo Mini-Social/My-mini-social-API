@@ -2,7 +2,7 @@ import mongoose from 'mongoose'
 interface IConversation extends mongoose.Document {
   members: mongoose.Types.ObjectId[]
   type: string
-  groupName: string
+  groupName: string | null
   avatar: string
   groupAdmin: mongoose.Types.ObjectId[]
   lastMessage: string
@@ -12,7 +12,7 @@ const ConversationSchema = new mongoose.Schema<IConversation>(
   {
     members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     type: { type: String, enum: ['private', 'group'], default: 'private' },
-    groupName: String,
+    groupName: { type: String, default: null },
     avatar: String,
     groupAdmin: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     lastMessage: { type: String, default: '' },

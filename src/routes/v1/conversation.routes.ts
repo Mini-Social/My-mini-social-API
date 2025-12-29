@@ -2,6 +2,7 @@ import {
   CreateGroupChat,
   CreatePrivateChat,
   GetConversation,
+  LeaveGroup,
   SaveConversationImage,
   ToggleGroupMember,
   UpdateGroupChat,
@@ -22,4 +23,5 @@ Router.put(
   UpdateGroupChat
 )
 Router.put('/toggleMember/:conversationId/:action', authMiddleware, ToggleGroupMember)
+Router.put('/leaveGroup/:conversationId', authMiddleware, LeaveGroup)
 export default Router
