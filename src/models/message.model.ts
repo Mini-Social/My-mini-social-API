@@ -6,6 +6,8 @@ interface IMessage extends mongoose.Document {
   content: string
   readBy: mongoose.Types.ObjectId[]
   images: string[]
+  createdAt: Date
+  updateAt: Date
 }
 
 const MessageSchema = new mongoose.Schema<IMessage>(

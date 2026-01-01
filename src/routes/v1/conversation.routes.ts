@@ -2,6 +2,7 @@ import {
   CreateGroupChat,
   CreatePrivateChat,
   GetConversation,
+  GetMessage,
   LeaveGroup,
   SaveConversationImage,
   ToggleGroupMember,
@@ -13,6 +14,7 @@ import express from 'express'
 const Router = express.Router()
 
 Router.get('/', authMiddleware, GetConversation)
+Router.get('/:conversationId/messages', authMiddleware, GetMessage)
 Router.post('/createPrivate/:userId', authMiddleware, CreatePrivateChat)
 Router.post('/createGroup', authMiddleware, CreateGroupChat)
 Router.put(

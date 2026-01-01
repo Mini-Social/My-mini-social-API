@@ -279,6 +279,36 @@ export const DeleteGroup = AsyncHandler(async (req: Request, res: Response, next
     message: 'Group and messages deleted'
   })
 })
+
+export const GetMessage = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { conversationId } = req.params
+  const limit = parseInt(req.query.limit as string) || 10
+  const cursor = req.query.cursor as string
+
+  const query: any = { conversationId }
+  if (cursor) {
+    query.createdAt = { $lte: new Date(cursor) }
+  }
+  let messages = await MessageModel.find(query)
+    .sort({ createdAt: -1 })
+    .limit(limit + 1)
+    .populate('sender', 'firstname lastname avatar')
+
+  let nextCursor = null
+
+  if (messages.length > limit) {
+    const nextMessage = messages[messages.length - 1]
+    nextCursor = nextMessage.createdAt.toISOString()
+    messages.pop()
+  }
+  messages = messages.reverse()
+
+  res.status(200).json({
+    status: 'success',
+    nextCursor,
+    messages
+  })
+})
 export const UploadConversationImage = upload.single('avatar')
 export const SaveConversationImage = async (req: Request, res: Response, next: NextFunction) => {
   if (!req.file) return next()
