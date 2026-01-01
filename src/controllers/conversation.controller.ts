@@ -35,7 +35,11 @@ export const CreatePrivateChat = AsyncHandler(async (req: Request, res: Response
   }
   const data = {
     members: [id, userId],
-    type: 'private'
+    type: 'private',
+    unReadCount: [
+      { userId: id, unReadCount: 0 },
+      { userId, unReadCount: 0 }
+    ]
   }
   const newConversation = await ConversationModel.create(data)
   if (!newConversation) {
@@ -68,12 +72,19 @@ export const CreateGroupChat = AsyncHandler(async (req: Request, res: Response, 
     const users = await UserModel.find({ _id: { $in: uniqueMembers } }).select('firstName lastName')
     newGroupName = users.map((user) => user.lastName).join(', ')
   }
+  const unReadCount = uniqueMembers.map((m) => {
+    return {
+      userId: m,
+      unReadCount: 0
+    }
+  })
   const data = {
     members: uniqueMembers,
     type: 'group',
     groupName: groupName || newGroupName,
     groupAdmin: [myId],
-    lastMessage: 'Đã tạo nhóm'
+    lastMessage: 'Đã tạo nhóm',
+    unReadCount
   }
 
   const newConversation = await ConversationModel.create(data)

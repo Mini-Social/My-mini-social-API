@@ -39,3 +39,19 @@ export const conversationSchema = zod.object({
   groupName: zod.string().optional(),
   avatar: zod.string().optional()
 })
+export const messageSchema = zod
+  .object({
+    content: zod.string().optional(),
+    images: zod.array(zod.string()).optional()
+  })
+  .refine(
+    (data) => {
+      const hasContent = data.content && data.content?.trim().length > 0
+      const hasImages = data.images && data.images.length > 0
+
+      return hasContent || hasImages
+    },
+    {
+      message: 'Message have to need content or image'
+    }
+  )

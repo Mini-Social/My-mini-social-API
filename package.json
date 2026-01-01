@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon --inspect src/index.js",
+    "dev": "nodemon --inspect src/index.ts",
     "build": "rimraf ./dist && tsc && tsc-alias",
     "start": "node dist/index.js",
     "lint": "eslint .",
@@ -47,6 +47,7 @@
     "mongoose": "^9.0.1",
     "multer": "^2.0.2",
     "sharp": "^0.34.5",
+    "socket.io": "^4.8.3",
     "uuid": "^13.0.0",
     "zod": "^4.2.1"
   }
