@@ -146,17 +146,32 @@ export const ToggleGroupMember = AsyncHandler(async (req: Request, res: Response
   }
   let updateQuery = {}
   if (action === 'add') {
-    updateQuery = { $addToSet: { members: { $each: userIds } } }
+    const unReadCounts = userIds.map((u) => ({
+      userId: u,
+      count: 0
+    }))
+    await ConversationModel.findByIdAndUpdate(conversationId, {
+      $addToSet: { members: { $each: userIds } },
+      $push: { unReadCount: unReadCounts }
+    })
   } else if (action === 'remove') {
     const isAllMembers = userIds.every((id) => convo.members.includes(id))
     if (!isAllMembers) {
       return next(new AppError('Only group members can remove.', 400))
     }
-    updateQuery = { $pull: { members: { $in: userIds } } }
+    if (userIds.includes(id)) {
+      return next(new AppError('Could not remove yourself.', 400))
+    }
+    await ConversationModel.findByIdAndUpdate(conversationId, {
+      $pull: { unReadCount: { userId: { $in: userIds } }, members: { $in: userIds } }
+    })
   } else if (action === 'makeAdmin') {
     const isAllMembers = userIds.every((id) => convo.members.includes(id))
     if (!isAllMembers) {
       return next(new AppError('Only group members can be admins.', 400))
+    }
+    if (userIds.includes(id)) {
+      return next(new AppError('Could not makeAdmin yourself.', 400))
     }
     updateQuery = { $addToSet: { groupAdmin: { $each: userIds } } }
   } else if (action === 'removeAdmin') {
@@ -177,25 +192,33 @@ export const ToggleGroupMember = AsyncHandler(async (req: Request, res: Response
     return
   }
   const myName = res.locals.info.lastName
-  const affectedUsers = await UserModel.find({ _id: { $in: userIds } }).select('firstName lastName')
+  const affectedUsers = await UserModel.find({ _id: { $in: userIds } }).select('lastName')
   const affectedNames =
     affectedUsers.length > 2
-      ? `${affectedUsers[0].firstName} ${affectedUsers[0].lastName} và ${affectedUsers.length - 1} người khác`
-      : affectedUsers.map((u) => `${u.firstName} ${u.lastName}`).join(', ')
+      ? `${affectedUsers[0].lastName} và ${affectedUsers.length - 1} người khác`
+      : affectedUsers.map((u) => `${u.lastName}`).join(', ')
   let systemText = ''
   if (action === 'add') systemText = `${myName} đã thêm ${affectedNames} vào nhóm.`
   else if (action === 'remove') systemText = `${myName} đã xóa ${affectedNames} khỏi nhóm`
   else if (action === 'makeAdmin') systemText = `${myName} đã bổ nhiệm ${affectedNames} làm quản trị viên`
   else if (action === 'removeAdmin') systemText = `${myName} đã gỡ quyền quản trị viên của ${affectedNames}`
+
+  const receivers = convo.members.concat(userIds).filter((memberId) => memberId.toString() !== id.toString())
   const updateConversation = await ConversationModel.findByIdAndUpdate(
     conversationId,
     {
       ...updateQuery,
       lastMessage: systemText,
       lastSenderId: null,
-      lastMessageAt: Date.now()
+      lastMessageAt: Date.now(),
+      $set: {
+        'unReadCount.$[senderElem].count': 0
+      },
+      $inc: {
+        'unReadCount.$[elem].count': 1
+      }
     },
-    { new: true }
+    { new: true, arrayFilters: [{ 'elem.userId': { $in: receivers } }, { 'senderElem.userId': id }] }
   )
     .populate('members', 'firstName lastName avatar isOnline')
     .populate('groupAdmin', 'firstName lastName avatar isOnline')
