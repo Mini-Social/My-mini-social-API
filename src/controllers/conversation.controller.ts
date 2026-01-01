@@ -141,8 +141,19 @@ export const ToggleGroupMember = AsyncHandler(async (req: Request, res: Response
     return
   }
   const convo = await ConversationModel.findById(conversationId)
+  if (!convo?.members.includes(id)) {
+    return next(new AppError('You are not members in this group', 400))
+  }
   if (!convo?.groupAdmin.includes(id)) {
     return next(new AppError('You are not admin in this group', 400))
+  }
+  if (userIds.includes(id)) {
+    return next(new AppError('Cound not add youselft', 400))
+  }
+  for (const id of userIds) {
+    if (convo.members.includes(id)) {
+      return next(new AppError(`Id: ${id} already is member in group.`, 400))
+    }
   }
   let updateQuery = {}
   if (action === 'add') {
@@ -240,6 +251,7 @@ export const GetConversation = AsyncHandler(async (req: Request, res: Response, 
     .limit(limit)
     .populate('members', 'firstName lastName avatar isOnline')
     .populate('groupAdmin', 'firstName lastName avatar isOnline')
+    .populate('lastSenderId', 'firstName lastName avatar')
 
   res.status(200).json({
     status: 'success',
@@ -250,6 +262,7 @@ export const GetConversation = AsyncHandler(async (req: Request, res: Response, 
 export const LeaveGroup = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { conversationId } = req.params
   const { id: myId } = res.locals.user
+  const { lastName } = res.locals.info
   const convo = await ConversationModel.findById(conversationId)
   if (!convo) {
     return next(new AppError('Group not found', 404))
@@ -261,18 +274,31 @@ export const LeaveGroup = AsyncHandler(async (req: Request, res: Response, next:
   if (isAdmin && convo.groupAdmin.length === 1 && convo.members.length > 1) {
     return next(new AppError('You are the last admin. Please appoint another before leaving.', 400))
   }
-  const updateConvo = await ConversationModel.findByIdAndUpdate(
+  const unReadCounts = convo.members.filter((id) => id !== myId)
+  await ConversationModel.findByIdAndUpdate(conversationId, {
+    $pull: {
+      members: myId,
+      groupAdmin: myId,
+      unReadCount: { userId: myId }
+    }
+  })
+  const updatedConvo = await ConversationModel.findByIdAndUpdate(
     conversationId,
     {
-      $pull: {
-        members: myId,
-        groupAdmin: myId
-      }
+      $set: {
+        lastMessage: `${lastName} đã rời khỏi nhóm.`,
+        lastMessageAt: Date.now(),
+        lastSenderId: null
+      },
+      $inc: { 'unReadCount.$[elem].count': 1 }
     },
-    { new: true }
+    {
+      new: true,
+      arrayFilters: [{ 'elem.userId': { $in: unReadCounts } }]
+    }
   )
 
-  if (updateConvo && updateConvo.members.length === 0) {
+  if (updatedConvo && updatedConvo.members.length === 0) {
     await ConversationModel.findByIdAndDelete(conversationId)
     res.status(200).json({
       status: 'success',
@@ -282,7 +308,7 @@ export const LeaveGroup = AsyncHandler(async (req: Request, res: Response, next:
   }
   res.status(200).json({
     status: 'success',
-    data: { conversation: updateConvo }
+    data: { conversation: updatedConvo }
   })
 })
 export const DeleteGroup = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
@@ -302,7 +328,6 @@ export const DeleteGroup = AsyncHandler(async (req: Request, res: Response, next
     message: 'Group and messages deleted'
   })
 })
-
 export const GetMessage = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { conversationId } = req.params
   const limit = parseInt(req.query.limit as string) || 10
