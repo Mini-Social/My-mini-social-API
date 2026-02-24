@@ -18,7 +18,7 @@ const Router = express.Router()
 
 Router.get('/getPost/:postId', authMiddleware, GetPostById)
 Router.get('/getAllPost', authMiddleware, GetAllPost)
-Router.get('/getPostByUserId', authMiddleware, GetPostByUserId)
+Router.get('/getPostByUserId/:userId', authMiddleware, GetPostByUserId)
 Router.get('/getTrashPost', authMiddleware, GetTrashPost)
 Router.post('/addPost', authMiddleware, UploadPostImages, SavePostImages, AddPost)
 Router.put('/reactions/:postId/:action', authMiddleware, HandleReactions)

@@ -20,6 +20,7 @@ interface IPost extends mongoose.Document {
     }
   ]
   visibility: string
+  commentCount: number
   shares: [
     {
       userId: mongoose.Types.ObjectId
@@ -52,6 +53,7 @@ const PostSchema = new mongoose.Schema<IPost>(
       }
     ],
     visibility: { type: String, enum: ['public', 'friends', 'private'], default: 'public' },
+    commentCount: { type: Number, default: 0 },
     shares: [
       {
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

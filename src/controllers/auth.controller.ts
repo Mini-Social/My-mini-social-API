@@ -7,9 +7,13 @@ import { loginSchema, userSchema } from '@/validate/validate'
 import UserModel, { IUser } from '@/models/user.model'
 import AppError from '@/utils/AppError'
 import mongoose from 'mongoose'
+import { upload } from '@/services/multer'
+import path from 'path'
+import { v4 as uuidv4 } from 'uuid'
+import sharp from 'sharp'
 export const SignIn = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { email, password } = loginSchema.parse(req.body)
-  const user = await UserModel.findOne({ email, deleted: false })
+  const user = await UserModel.findOne({ email, deleted: false }).populate('friends', '_id firstName lastName avatar')
   if (!user) {
     return next(new AppError('Invalid email. Please try again.', 401))
   }
@@ -36,7 +40,8 @@ export const SignUp = AsyncHandler(async (req: Request, res: Response, next: Nex
   }
   const user = new UserModel(body)
   user.isOnline = true
-  const newUser = await user.save()
+  let newUser = await user.save()
+  newUser = await newUser.populate('friends', '_id firstName lastName avatar')
   if (!newUser) {
     return next(new AppError('Could not create user. Please try again.', 400))
   }
@@ -64,7 +69,7 @@ function SendResponeWithToken(req: Request, res: Response, user: IUser, statusCo
     httpOnly: true
   })
   user.password = undefined
-  res.status(statusCode).json({
+  return res.status(statusCode).json({
     status: 'success',
     data: {
       user,
@@ -85,12 +90,18 @@ export const UpdatePassword = AsyncHandler(async (req: Request, res: Response, n
   if (!oldPassword || oldPassword.length <= 5 || !isMatch) {
     return next(new AppError('Invalid password', 400))
   }
+  if (oldPassword === password) {
+    return next(new AppError('Please use a password different from your current password.', 400))
+  }
   user.password = password
   await user.save()
   res.status(200).json({ message: 'Update password successfully.' })
 })
 export const UpdateProfile = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   delete req.body.password
+  if (req.body.coverPosition) {
+    req.body.coverPosition = parseInt(req.body.coverPosition)
+  }
   const body = userSchema.partial().parse(req.body)
   const { id } = res.locals.user
   const existEmail = await UserModel.findOne({ email: body.email, deleted: false })
@@ -121,3 +132,46 @@ export const GetProfile = AsyncHandler(async (req: Request, res: Response, next:
     data: user
   })
 })
+export const CheckAuth = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  if (req.cookies?.jwt) {
+    const token = req.cookies.jwt
+    const decoded = jwt.verify(token, env.JWT_SUPERSECRET as string) as { id: string; role: string }
+    if (!decoded || !decoded.id) {
+      res.status(200).json()
+      return
+    }
+    const currentUser = await UserModel.findById(decoded.id)
+      .select('-password')
+      .populate('friends', '_id firstName lastName avatar')
+    res.status(200).json({
+      status: 'success',
+      data: {
+        user: currentUser,
+        token
+      }
+    })
+    return
+  }
+  res.status(200).json({
+    data: {
+      user: null,
+      token: null
+    }
+  })
+})
+export const UploadImage = upload.fields([
+  { name: 'avatar', maxCount: 1 },
+  { name: 'background', maxCount: 1 }
+])
+export const SaveImage = async (req: Request, res: Response, next: NextFunction) => {
+  if (!req.files || (req.files as Express.Multer.File[]).length === 0) return next()
+  const arrayFiles = Object.values(req.files).flat()
+  for (const file of arrayFiles as Express.Multer.File[]) {
+    const targetDir = path.join(__dirname, `../../public/img/${file.fieldname}s`)
+    const fileId = uuidv4()
+    const fileName = `${file.fieldname}Id-${fileId}-${Date.now()}.jpeg`
+    await sharp(file.buffer).toFormat('jpeg').jpeg({ quality: 90 }).toFile(`${targetDir}/${fileName}`)
+    req.body[file.fieldname] = fileName
+  }
+  next()
+}

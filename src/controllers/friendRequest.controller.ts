@@ -93,6 +93,38 @@ export const RefusedFriendRequest = AsyncHandler(async (req: Request, res: Respo
     message: 'Successfully refused.'
   })
 })
+export const getFriendRequests = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const userId = res.locals.user.id
+  const requests = await FriendRequestModel.find({
+    receiver: userId,
+    status: 'pending'
+  })
+    .populate({
+      path: 'sender',
+      select: 'firstName lastName avatar address'
+    })
+    .sort({ createdAt: -1 })
+  res.status(200).json({
+    success: true,
+    data: requests
+  })
+})
+export const getSentFriendRequests = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const userId = res.locals.user.id
+  const requests = await FriendRequestModel.find({
+    sender: userId,
+    status: 'pending'
+  })
+    .populate({
+      path: 'receiver',
+      select: 'firstName lastName avatar address'
+    })
+    .sort({ createdAt: -1 })
+  res.status(200).json({
+    success: true,
+    data: requests
+  })
+})
 function CheckInvalidId(id: any) {
   return mongoose.Types.ObjectId.isValid(id)
 }

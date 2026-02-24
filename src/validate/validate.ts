@@ -8,10 +8,14 @@ export const userSchema = zod
     password: zod.string().min(6, 'Password must be at least 6 characters.'),
     passwordConfirm: zod.string().min(6, 'Password confirm must be at least 6 characters.'),
     avatar: zod.string().optional(),
+    background: zod.string().optional(),
+    coverPosition: zod.number().optional(),
     bio: zod.string().optional(),
     gender: zod.enum(['Male', 'Female'], 'Invalid gender.').optional(),
+    address: zod.string().optional(),
     phone: zod.string().optional(),
-    birthDate: zod.coerce.date().optional()
+    birthDate: zod.coerce.date().optional(),
+    relationship: zod.enum(['Single', 'Married'], 'Invalid relationship.').optional()
   })
   .refine((val) => val.password === val.passwordConfirm, {
     message: 'Passwords do not match.',
@@ -24,7 +28,7 @@ export const loginSchema = zod.object({
 export const postSchema = zod.object({
   content: zod.string().optional(),
   images: zod.array(zod.string()).optional(),
-  visibility: zod.enum(['public', 'friend', 'private']).optional().default('public'),
+  visibility: zod.enum(['public', 'friends', 'private']).optional().default('public'),
   sharePostId: zod.string().nullable().optional()
 })
 export const shareSchema = zod.object({

@@ -51,10 +51,11 @@ export const SendPrivateMessage = AsyncHandler(async (req: Request, res: Respons
       count: isSender ? 0 : Number(u.count) + 1
     }
   })
+  const newMessage = await message.populate('sender', '_id')
   await conversation.save()
   res.status(200).json({
     status: 'success',
-    data: { message }
+    data: { message: newMessage }
   })
 })
 
@@ -106,10 +107,46 @@ export const SendGroupMessage = AsyncHandler(async (req: Request, res: Response,
     data: { message }
   })
 })
+export const MarkAsSeen = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  console.log(1234)
+  const { conversationId } = req.params
+  const { id: userId } = res.locals.user
+
+  await MessageModel.updateMany(
+    {
+      conversationId,
+      readBy: { $ne: userId }
+    },
+    {
+      $addToSet: { readBy: userId }
+    }
+  )
+
+  const conversation = await ConversationModel.findOneAndUpdate(
+    {
+      _id: conversationId,
+      'unReadCount.userId': userId
+    },
+    {
+      $set: { 'unReadCount.$.count': 0 }
+    },
+    { new: true }
+  )
+
+  if (!conversation) {
+    res.status(404).json({ status: 'fail', message: 'Hội thoại không tồn tại' })
+    return
+  }
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Đã đánh dấu xem toàn bộ tin nhắn'
+  })
+})
 export const UploadMessageImage = upload.array('images', 6)
 export const SaveMessageImage = async (req: Request, res: Response, next: NextFunction) => {
   if (!req.files) return next()
-  const targetDir = path.join(__dirname, '../assest/img/messages')
+  const targetDir = path.join(__dirname, '../../public/img/messages')
   const messageId = uuidv4()
   const promiseFiles = (req.files as Express.Multer.File[]).map(async (file, index) => {
     const fileName = `messageId-${messageId}-${Date.now()}-${index + 1}.jpeg`

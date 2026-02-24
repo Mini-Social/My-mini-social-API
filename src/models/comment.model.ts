@@ -6,6 +6,7 @@ interface IComment extends mongoose.Document {
   content: string
   image: string | null
   parentCommentId: mongoose.Types.ObjectId | null
+  replyToId: mongoose.Types.ObjectId | null
   reactions: {
     like: number
     love: number
@@ -21,6 +22,7 @@ interface IComment extends mongoose.Document {
       reactionAt: Date
     }
   ]
+  replyCount: number
   deleted: boolean
   deletedAt: Date | null
 }
@@ -31,6 +33,7 @@ const CommentSchema = new mongoose.Schema<IComment>(
     content: { type: String },
     image: { type: String, default: null },
     parentCommentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Comment', default: null },
+    replyToId: { type: mongoose.Schema.Types.ObjectId, ref: 'Comment', default: null },
     reactions: {
       like: { type: Number, default: 0 },
       love: { type: Number, default: 0 },
@@ -46,6 +49,7 @@ const CommentSchema = new mongoose.Schema<IComment>(
         reactionAt: { type: Date, default: Date.now }
       }
     ],
+    replyCount: { type: Number, default: 0 },
     deleted: { type: Boolean, default: false },
     deletedAt: Date
   },

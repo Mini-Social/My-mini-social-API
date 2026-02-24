@@ -7,8 +7,12 @@ export interface IUser extends Document {
   email: string
   password: string | undefined
   avatar: string
+  background: string
+  coverPosition: number
   bio: string
   gender: string
+  address: string
+  relationship: string
   phone: string
   birthDate: Date
   role: string
@@ -27,8 +31,12 @@ const UserSchema = new Schema<IUser>(
     email: { type: String, unique: true },
     password: { type: String, required: true },
     avatar: String,
+    background: String,
+    coverPosition: Number,
     bio: { type: String, default: '' },
     gender: { type: String, enum: ['Male', 'Female'] },
+    address: { type: String, default: '' },
+    relationship: { type: String, enum: ['Single', 'Married '] },
     phone: { type: String, default: '' },
     birthDate: { type: Date, default: null },
     role: { type: String, enum: ['Admin', 'User'], default: 'User' },

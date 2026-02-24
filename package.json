@@ -5,6 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --inspect src/index.ts",
+    "seed:posts": "npx ts-node src/seedPost.ts",
+    "seed:data": "npx ts-node src/seedData.ts",
     "build": "rimraf ./dist && tsc && tsc-alias",
     "start": "node dist/index.js",
     "lint": "eslint .",
@@ -43,7 +45,7 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "mongodb": "^7.0.0",
+    "mongodb": "^7.1.0",
     "mongoose": "^9.0.1",
     "multer": "^2.0.2",
     "sharp": "^0.34.5",

@@ -1,5 +1,7 @@
 import mongoose from 'mongoose'
 import { env } from '../constants/enviroments'
+import dns from 'node:dns/promises'
+dns.setServers(['1.1.1.1'])
 // MongoDB connection
 export const connectToDatabase = async (): Promise<void> => {
   try {

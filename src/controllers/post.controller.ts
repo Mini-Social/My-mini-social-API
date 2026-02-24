@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express'
-import fs from 'fs'
 import AsyncHandler from '@/utils/AsyncHandler'
 import AppError from '@/utils/AppError'
 import { upload } from '@/services/multer'
@@ -33,13 +32,14 @@ export const AddPost = AsyncHandler(async (req: Request, res: Response, next: Ne
     const { id } = res.locals.user
 
     const newPost = await PostModel.create({ author: id, ...body })
+    const data = await PostModel.findById(newPost._id).populate('author', 'userName firstName lastName avatar')
     if (!newPost) {
       return next(new AppError('Could not add new post', 400))
     }
     res.status(200).json({
       status: 'success',
       data: {
-        post: newPost
+        post: data
       }
     })
   } catch (error: any) {
@@ -50,15 +50,21 @@ export const AddPost = AsyncHandler(async (req: Request, res: Response, next: Ne
 export const UpdatePost = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { postId } = req.params
   const { id } = res.locals.user
+  let remainingImages = []
+
+  if (req.body.oldImages) {
+    remainingImages = Array.isArray(req.body.oldImages) ? req.body.oldImages : [req.body.oldImages]
+  }
   const body = postSchema.partial().parse(req.body)
   const post = await PostModel.findById(postId).select('images author')
   if (body.images && body.images.length > 0) {
     if (post?.images) {
-      CleanImages([...post.images])
+      const imagesToDelete = post.images.filter((img) => !remainingImages.includes(img))
+      CleanImages(imagesToDelete)
     }
-  } else {
-    delete body.images
   }
+  const newImages = body.images || []
+  body.images = [...remainingImages, ...newImages]
   if (!post) {
     return next(new AppError(`Not Found post: ${postId}`, 400))
   }
@@ -69,7 +75,10 @@ export const UpdatePost = AsyncHandler(async (req: Request, res: Response, next:
   if (id !== String(post.author)) {
     return next(new AppError('You do not have permission to update this post', 400))
   }
-  const updatePost = await PostModel.findByIdAndUpdate(postId, body, { new: true })
+  const updatePost = await PostModel.findByIdAndUpdate(postId, body, { new: true }).populate(
+    'author',
+    'userName firstName lastName avatar'
+  )
   if (!updatePost) {
     return next(new AppError(`Could not update post: ${postId}`, 400))
   }
@@ -109,6 +118,8 @@ export const GetPostById = AsyncHandler(async (req: Request, res: Response, next
     return next(new AppError('Invalid ID', 400))
   }
   const post = await PostModel.findOne({ _id: postId, deleted: false })
+    .populate('author', 'userName firstName lastName avatar')
+    .populate('userReactions.userId', '_id userName firstName lastName avatar')
   if (!post) {
     return next(new AppError(`Not Found post: ${postId}`, 400))
   }
@@ -118,8 +129,10 @@ export const GetPostById = AsyncHandler(async (req: Request, res: Response, next
   })
 })
 export const GetPostByUserId = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  const { id } = res.locals.user
-  const posts = await PostModel.find({ author: id, deleted: false })
+  const { userId } = req.params
+  const posts = await PostModel.find({ author: userId, deleted: false })
+    .populate('author', 'userName firstName lastName avatar')
+    .populate('userReactions.userId', '_id userName firstName lastName avatar')
   res.status(200).json({
     status: 'success',
     data: { posts }
@@ -127,6 +140,8 @@ export const GetPostByUserId = AsyncHandler(async (req: Request, res: Response, 
 })
 export const GetAllPost = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const posts = await PostModel.find({ deleted: false })
+    .populate('author', 'userName firstName lastName avatar')
+    .populate('userReactions.userId', '_id userName firstName lastName avatar')
   res.status(200).json({
     status: 'success',
     data: { posts }
@@ -215,7 +230,7 @@ export const HandleReactions = AsyncHandler(async (req: Request, res: Response, 
     if (!post) {
       return next(new AppError(`No post found with ID: ${postId}`, 400))
     }
-    const exitsUser = post.userReactions.some((reaction) => String(reaction.userId) === id)
+    const exitsUser = post.userReactions.find((reaction) => String(reaction.userId) === id)
     if (!exitsUser) {
       const data = {
         userId: id,
@@ -234,6 +249,28 @@ export const HandleReactions = AsyncHandler(async (req: Request, res: Response, 
         return next(new AppError(`Could not ${action} this post`, 400))
       }
       return updatePost
+    } else {
+      if (exitsUser.reactions !== action) {
+        const oldReactions = exitsUser.reactions
+        const updatePost = await PostModel.findOneAndUpdate(
+          {
+            _id: post._id,
+            'userReactions.userId': id
+          },
+          {
+            $inc: { [`reactions.${action}`]: 1, [`reactions.${oldReactions}`]: -1 },
+            $set: {
+              'userReactions.$.reactions': action,
+              'userReactions.$.reactionAt': Date.now()
+            }
+          },
+          { new: true }
+        )
+        if (!updatePost) {
+          return next(new AppError(`Could not ${action} this post`, 400))
+        }
+        return updatePost
+      }
     }
     return null
   }

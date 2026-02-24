@@ -18,13 +18,14 @@ export const AddComment = AsyncHandler(async (req: Request, res: Response, next:
     const { id } = res.locals.user
     const { postId } = req.params
     const { parentCommentId } = req.body
+    const { replyToId } = req.body
     const existPost = await PostModel.findById(postId)
     if (!existPost) {
       deleteUploadedFile()
       return next(new AppError('No Found Post', 404))
     }
     if (parentCommentId) {
-      const existComment = await CommentModel.findById(parentCommentId)
+      const existComment = await CommentModel.findByIdAndUpdate(parentCommentId, { $inc: { replyCount: 1 } })
       if (!existComment) {
         deleteUploadedFile()
         return next(new AppError('No Found Comment', 404))
@@ -35,9 +36,11 @@ export const AddComment = AsyncHandler(async (req: Request, res: Response, next:
       postId,
       userId: id,
       ...body,
-      parentCommentId: parentCommentId || null
+      parentCommentId: parentCommentId || null,
+      replyToId: replyToId || null
     }
     const newComment = await CommentModel.create(data)
+    await PostModel.findByIdAndUpdate(postId, { $inc: { commentCount: 1 } })
     res.status(200).json({
       status: 'success',
       data: { comment: newComment }
@@ -50,7 +53,7 @@ export const AddComment = AsyncHandler(async (req: Request, res: Response, next:
 export const UpdateComment = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { id } = res.locals.user
   const { commentId } = req.params
-  const existComment = await CommentModel.findOne({ _id: commentId, deleted: false })
+  const existComment = await CommentModel.findOne({ _id: commentId })
   if (!existComment) {
     return next(new AppError('No Found Comment', 404))
   }
@@ -59,6 +62,24 @@ export const UpdateComment = AsyncHandler(async (req: Request, res: Response, ne
   }
   const body = commentSchema.parse(req.body)
   const updateComment = await CommentModel.findByIdAndUpdate(commentId, body, { new: true })
+    .populate('userId', '_id userName firstName lastName avatar')
+    .populate('userReactions.userId', '_id userName firstName lastName avatar')
+    .populate({
+      path: 'parentCommentId',
+      select: '_id',
+      populate: {
+        path: 'userId',
+        select: 'userName firstName lastName'
+      }
+    })
+    .populate({
+      path: 'replyToId',
+      select: '_id userId',
+      populate: {
+        path: 'userId',
+        select: 'userName firstName lastName'
+      }
+    })
   res.status(200).json({
     status: 'success',
     data: { comment: updateComment }
@@ -67,9 +88,7 @@ export const UpdateComment = AsyncHandler(async (req: Request, res: Response, ne
 export const DeleteComment = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { id } = res.locals.user
   const { commentId } = req.params
-  const existComment = await CommentModel.findOne({ _id: commentId, deleted: false }).select(
-    'userId content deleted deletedAt image'
-  )
+  const existComment = await CommentModel.findOne({ _id: commentId }).select('userId content deleted deletedAt image')
   if (!existComment) {
     return next(new AppError('No Found Comment', 404))
   }
@@ -83,20 +102,68 @@ export const DeleteComment = AsyncHandler(async (req: Request, res: Response, ne
   existComment.deletedAt = new Date(Date.now())
   existComment.content = 'Bình luận này đã bị xóa'
   existComment.image = null
-  await existComment.save()
+  const deletedComment = await CommentModel.findByIdAndUpdate(
+    commentId,
+    {
+      deleted: true,
+      deletedAt: new Date(Date.now()),
+      content: 'Bình luận này đã bị xóa',
+      image: null
+    },
+    {
+      new: true
+    }
+  )
+    .populate('userId', '_id userName firstName lastName avatar')
+    .populate('userReactions.userId', '_id userName firstName lastName avatar')
+    .populate({
+      path: 'parentCommentId',
+      select: '_id',
+      populate: {
+        path: 'userId',
+        select: 'userName firstName lastName'
+      }
+    })
+    .populate({
+      path: 'replyToId',
+      select: '_id userId',
+      populate: {
+        path: 'userId',
+        select: 'userName firstName lastName'
+      }
+    })
   res.status(200).json({
     status: 'success',
-    message: 'Successfully delete comment'
+    data: {
+      comment: deletedComment
+    }
   })
 })
 export const GetMainComments = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { postId } = req.params
-  const existPost = await PostModel.findOne({ _id: postId, deleted: false })
+  const existPost = await PostModel.findOne({ _id: postId })
   if (!existPost) {
     return next(new AppError(`No Found Post with id: ${postId}`, 400))
   }
-  const comments = await CommentModel.find({ postId: postId, parentCommentId: null, deleted: false })
-    .populate('userId', 'username avatar')
+  const comments = await CommentModel.find({ postId: postId, parentCommentId: null })
+    .populate('userId', 'userName avatar firstName lastName')
+    .populate({
+      path: 'parentCommentId',
+      select: '_id',
+      populate: {
+        path: 'userId',
+        select: 'userName firstName lastName'
+      }
+    })
+    .populate({
+      path: 'replyToId',
+      select: '_id userId',
+      populate: {
+        path: 'userId',
+        select: 'userName firstName lastName'
+      }
+    })
+    .populate('userReactions.userId', '_id userName firstName lastName avatar')
     .sort('createdAt')
   res.status(200).json({
     status: 'success',
@@ -106,8 +173,25 @@ export const GetMainComments = AsyncHandler(async (req: Request, res: Response, 
 })
 export const GetCommentsReplies = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { parentCommentId } = req.params
-  const repliesComments = await CommentModel.find({ parentCommentId: parentCommentId, deleted: false })
-    .populate('userId', 'username avatar')
+  const repliesComments = await CommentModel.find({ parentCommentId: parentCommentId })
+    .populate('userId', 'userName avatar firstName lastName')
+    .populate({
+      path: 'parentCommentId',
+      select: '_id userId',
+      populate: {
+        path: 'userId',
+        select: 'userName firstName lastName'
+      }
+    })
+    .populate({
+      path: 'replyToId',
+      select: '_id userId',
+      populate: {
+        path: 'userId',
+        select: 'userName firstName lastName'
+      }
+    })
+    .populate('userReactions.userId', '_id userName firstName lastName avatar')
     .sort('createdAt')
   res.status(200).json({
     status: 'success',
@@ -129,11 +213,11 @@ export const HandleReactions = AsyncHandler(async (req: Request, res: Response, 
     return next(new AppError('Invalid Action', 400))
   }
   const add = async (action: string) => {
-    const comment = await CommentModel.findOne({ _id: commentId, deleted: false }).select('reactions userReactions')
+    const comment = await CommentModel.findOne({ _id: commentId }).select('reactions userReactions')
     if (!comment) {
       return next(new AppError(`No comment found with ID: ${commentId}`, 400))
     }
-    const exitsUser = comment.userReactions.some((reaction) => String(reaction.userId) === id)
+    const exitsUser = comment.userReactions.find((reaction) => String(reaction.userId) === id)
     if (!exitsUser) {
       const data = {
         userId: id,
@@ -147,16 +231,38 @@ export const HandleReactions = AsyncHandler(async (req: Request, res: Response, 
           $push: { userReactions: data }
         },
         { new: true }
-      )
+      ).populate('userReactions.userId', '_id userName firstName lastName avatar')
       if (!updateComment) {
-        return next(new AppError(`Could not ${action} this post`, 400))
+        return next(new AppError(`Could not ${action} this comment`, 400))
       }
       return updateComment
+    } else {
+      if (exitsUser.reactions !== action) {
+        const oldReactions = exitsUser.reactions
+        const updateComment = await CommentModel.findOneAndUpdate(
+          {
+            _id: comment._id,
+            'userReactions.userId': id
+          },
+          {
+            $inc: { [`reactions.${action}`]: 1, [`reactions.${oldReactions}`]: -1 },
+            $set: {
+              'userReactions.$.reactions': action,
+              'userReactions.$.reactionAt': Date.now()
+            }
+          },
+          { new: true }
+        ).populate('userReactions.userId', '_id userName firstName lastName avatar')
+        if (!updateComment) {
+          return next(new AppError(`Could not ${action} this comment`, 400))
+        }
+        return updateComment
+      }
     }
     return null
   }
   const remove = async (action: string) => {
-    const comment = await CommentModel.findOne({ _id: commentId, deleted: false }).select('reactions userReactions')
+    const comment = await CommentModel.findOne({ _id: commentId }).select('reactions userReactions')
     if (!comment) {
       return next(new AppError(`No comment found with ID: ${commentId}`, 400))
     }
@@ -173,7 +279,7 @@ export const HandleReactions = AsyncHandler(async (req: Request, res: Response, 
         {
           new: true
         }
-      )
+      ).populate('userReactions.userId', '_id userName firstName lastName avatar')
       if (!updateComment) {
         return next(new AppError(`Could not ${action} post: ${commentId}`, 400))
       }

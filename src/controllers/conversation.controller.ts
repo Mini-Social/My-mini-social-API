@@ -249,10 +249,9 @@ export const GetConversation = AsyncHandler(async (req: Request, res: Response, 
     .sort({ lastMessageAt: -1 })
     .skip((page - 1) * limit)
     .limit(limit)
-    .populate('members', 'firstName lastName avatar isOnline')
-    .populate('groupAdmin', 'firstName lastName avatar isOnline')
-    .populate('lastSenderId', 'firstName lastName avatar')
-
+    .populate('members', '_id firstName lastName avatar isOnline')
+    .populate('groupAdmin', '_id firstName lastName avatar isOnline')
+    .populate('lastSenderId', '_id firstName lastName avatar')
   res.status(200).json({
     status: 'success',
     length: conversations.length,
@@ -339,9 +338,9 @@ export const GetMessage = AsyncHandler(async (req: Request, res: Response, next:
   }
   let messages = await MessageModel.find(query)
     .sort({ createdAt: -1 })
-    .limit(limit + 1)
-    .populate('sender', 'firstname lastname avatar')
-
+    // .limit(limit + 1)
+    .populate('sender', '_id firstname lastname avatar')
+    .populate('readBy', '_id firstName lastName avatar')
   let nextCursor = null
 
   if (messages.length > limit) {
@@ -349,12 +348,19 @@ export const GetMessage = AsyncHandler(async (req: Request, res: Response, next:
     nextCursor = nextMessage.createdAt.toISOString()
     messages.pop()
   }
-  messages = messages.reverse()
+  const conversation = await ConversationModel.findOne({ _id: conversationId })
+    .populate({
+      path: 'members',
+      select: '_id firstName lastName avatar isOnline lastOnline'
+    })
+    .lean()
 
+  messages = messages.reverse()
   res.status(200).json({
     status: 'success',
     nextCursor,
-    messages
+    messages,
+    conversation
   })
 })
 export const UploadConversationImage = upload.single('avatar')

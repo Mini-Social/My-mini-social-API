@@ -23,7 +23,6 @@ export const getUserById = AsyncHandler(async (req: Request, res: Response, next
 })
 export const getUserByEmail = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { email } = req.params
-  console.log(email)
   const user = await UserModel.findOne({ email, deleted: false })
   if (!user) {
     return next(new AppError('User not found', 404))
@@ -32,7 +31,10 @@ export const getUserByEmail = AsyncHandler(async (req: Request, res: Response, n
 })
 export const getUserByUserName = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { userName } = req.params
-  const user = await UserModel.findOne({ userName, deleted: false })
+  const user = await UserModel.findOne({ userName, deleted: false }).populate(
+    'friends',
+    '_id userName firstName lastName avatar'
+  )
   if (!user) {
     return next(new AppError('User not found', 404))
   }
@@ -93,4 +95,57 @@ export const deleteUserById = AsyncHandler(async (req: Request, res: Response, n
     return next(new AppError('User not found', 404))
   }
   res.status(200).json({ message: 'User deleted successfully', data: user })
+})
+export const getSuggestions = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const user = res.locals.user
+  const info = res.locals.info
+  console.log(user)
+  const myId = new mongoose.Types.ObjectId(user._id || user.id)
+  const suggestions = await UserModel.aggregate([
+    // 1. Loại bỏ bản thân, bạn bè hiện tại và tài khoản đã bị xóa (deleted)
+    {
+      $match: {
+        _id: { $ne: myId, $nin: info.friends },
+        deleted: false
+      }
+    },
+
+    // 2. Tính toán điểm ưu tiên (Scoring)
+    {
+      $addFields: {
+        score: {
+          $add: [
+            // Ưu tiên người cùng địa chỉ (cộng 10 điểm)
+            { $cond: [{ $eq: ['$address', info.address] }, 10, 0] },
+            // Ưu tiên người đang Online (cộng 5 điểm)
+            { $cond: [{ $eq: ['$isOnline', true] }, 5, 0] },
+            // Ưu tiên người có bạn chung (mỗi bạn chung cộng 2 điểm)
+            { $multiply: [{ $size: { $setIntersection: ['$friends', info.friends] } }, 2] }
+          ]
+        },
+        // Tính số lượng bạn chung để hiển thị lên UI
+        mutualFriendsCount: { $size: { $setIntersection: ['$friends', info.friends] } }
+      }
+    },
+
+    // 3. Sắp xếp theo điểm ưu tiên cao nhất
+    { $sort: { score: -1, createdAt: -1 } },
+
+    // 4. Giới hạn 10 người
+    { $limit: 10 },
+
+    // 5. Chỉ lấy các field cần thiết cho UI
+    {
+      $project: {
+        firstName: 1,
+        lastName: 1,
+        userName: 1,
+        avatar: 1,
+        address: 1,
+        isOnline: 1,
+        mutualFriendsCount: 1
+      }
+    }
+  ])
+  res.status(200).json({ data: suggestions })
 })
