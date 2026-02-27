@@ -14,7 +14,7 @@ const app: express.Application = express()
 const server = createServer(app)
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:3000',
+    origin: 'https://mini-social-orpin.vercel.app/',
     methods: ['GET', 'POST']
   }
 })
@@ -120,7 +120,7 @@ const port: number = env.PORT
 app.use(express.static(path.join(__dirname, '../public')))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
-app.use(cors({ origin: 'http://localhost:3000', credentials: true }))
+app.use(cors({ origin: 'https://mini-social-orpin.vercel.app', credentials: true }))
 app.use(cookieParser())
 // Routes
 Router(app)
@@ -130,6 +130,6 @@ app.use(HandleError)
 connectToDatabase().then(() => {
   // Start server
   server.listen(port, () => {
-    console.log(`App listening at http://localhost:${port}`)
+    console.log(`App listening at https://mini-social-orpin.vercel.app/:${port}`)
   })
 })
