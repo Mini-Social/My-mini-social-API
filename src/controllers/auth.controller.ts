@@ -66,7 +66,9 @@ function SendResponeWithToken(req: Request, res: Response, user: IUser, statusCo
   const token = SignToken(user._id, user.role)
   res.cookie('jwt', token, {
     expires: new Date(Date.now() + Number(env.JWT_COOKIE_EXPIRED_IN) * 24 * 60 * 60 * 1000),
-    httpOnly: true
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none'
   })
   user.password = undefined
   return res.status(statusCode).json({
