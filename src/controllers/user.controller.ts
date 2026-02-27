@@ -149,3 +149,27 @@ export const getSuggestions = AsyncHandler(async (req: Request, res: Response, n
   ])
   res.status(200).json({ data: suggestions })
 })
+export const getFriendsList = async (req: Request, res: Response) => {
+  try {
+    const userId = res.locals.user.id
+    if (!userId) {
+      return res.status(400).json({ message: 'Không tìm thấy ID người dùng' })
+    }
+    const user = await UserModel.findById(userId)
+      .populate({
+        path: 'friends',
+        select: '_id firstName lastName userName avatar isOnline'
+      })
+      .lean()
+
+    if (!user) {
+      return res.status(404).json({ message: 'Người dùng không tồn tại' })
+    }
+    return res.status(200).json({
+      success: true,
+      data: user.friends
+    })
+  } catch (error) {
+    return res.status(500).json({ message: 'Lỗi server', error })
+  }
+}

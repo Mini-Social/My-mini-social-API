@@ -1,6 +1,6 @@
 import express from 'express'
 
-import { getAllUsers, getSuggestions } from '@/controllers/user.controller'
+import { getAllUsers, getFriendsList, getSuggestions } from '@/controllers/user.controller'
 import { getUserById } from '@/controllers/user.controller'
 import { getUserByEmail } from '@/controllers/user.controller'
 import { getUserByUserName } from '@/controllers/user.controller'
@@ -31,6 +31,7 @@ router.get('/getUserById/:id', getUserById)
 router.get('/getUserByEmail/:email', getUserByEmail)
 router.get('/getUserByUserName/:userName', getUserByUserName)
 router.get('/getSuggestion', authMiddleware, getSuggestions)
+router.get('/getFriendsList', authMiddleware, getFriendsList)
 router.post('/register', createUser)
 router.put('/update-password', authMiddleware, UpdatePassword)
 router.put('/update-profile', authMiddleware, UploadImage, SaveImage, UpdateProfile)

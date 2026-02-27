@@ -92,8 +92,8 @@ export const CreateGroupChat = AsyncHandler(async (req: Request, res: Response, 
     return next(new AppError('Could not create new conversation', 400))
   }
   const fullConversation = await ConversationModel.findById(newConversation._id)
-    .populate('members', 'firstName lastName avatar isOnline')
-    .populate('groupAdmin', 'firstName lastName avatar isOnline')
+    .populate('members', '_id userName firstName lastName avatar isOnline')
+    .populate('groupAdmin', '_id userName firstName lastName avatar isOnline')
   res.status(200).json({
     status: 'success',
     data: { conversation: fullConversation }
@@ -249,9 +249,9 @@ export const GetConversation = AsyncHandler(async (req: Request, res: Response, 
     .sort({ lastMessageAt: -1 })
     .skip((page - 1) * limit)
     .limit(limit)
-    .populate('members', '_id firstName lastName avatar isOnline')
-    .populate('groupAdmin', '_id firstName lastName avatar isOnline')
-    .populate('lastSenderId', '_id firstName lastName avatar')
+    .populate('members', '_id userName firstName lastName avatar isOnline')
+    .populate('groupAdmin', '_id userName firstName lastName avatar isOnline')
+    .populate('lastSenderId', '_id userName firstName lastName avatar')
   res.status(200).json({
     status: 'success',
     length: conversations.length,
@@ -351,7 +351,15 @@ export const GetMessage = AsyncHandler(async (req: Request, res: Response, next:
   const conversation = await ConversationModel.findOne({ _id: conversationId })
     .populate({
       path: 'members',
-      select: '_id firstName lastName avatar isOnline lastOnline'
+      select: '_id userName firstName lastName avatar isOnline lastOnline'
+    })
+    .populate({
+      path: 'groupAdmin',
+      select: '_id userName firstName lastName avatar isOnline lastOnline'
+    })
+    .populate({
+      path: 'lastSenderId',
+      select: '_id userName firstName lastName avatar'
     })
     .lean()
 

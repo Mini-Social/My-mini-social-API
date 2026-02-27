@@ -51,6 +51,12 @@ io.on('connection', (socket) => {
       io.to(user.socketId).emit('getMessage', { messageData })
     }
   })
+  socket.on('markMessageAsRead', ({ receiver, sender }) => {
+    const user = getUser(sender)
+    if (user) {
+      io.to(user.socketId).emit('markMessageAsRead', { receiver })
+    }
+  })
   socket.on('typing', ({ receiverId }) => {
     const user = getUser(receiverId)
     if (user) {
@@ -61,6 +67,34 @@ io.on('connection', (socket) => {
     const user = getUser(receiverId)
     if (user) {
       io.to(user.socketId).emit('cancelTyping')
+    }
+  })
+  socket.on('sendFriendRequest', ({ requestData }) => {
+    const user = getUser(requestData.receiver._id)
+    if (user) {
+      io.to(user.socketId).emit('sendFriendRequest', requestData)
+    }
+  })
+  socket.on('acceptFriendRequest', ({ requestData }) => {
+    const user = getUser(requestData.receiver._id)
+    const sender = getUser(requestData.sender._id)
+    if (user) {
+      io.to(user.socketId).emit('acceptFriendRequest', { requestData, isOnline: sender?.userId, isSender: false })
+    }
+    if (sender) {
+      io.to(sender.socketId).emit('acceptFriendRequest', { requestData, isOnline: user?.userId, isSender: true })
+    }
+  })
+  socket.on('rejectFriendRequest', (requestData) => {
+    const user = getUser(requestData.sender._id)
+    if (user) {
+      io.to(user.socketId).emit('rejectFriendRequest', requestData._id)
+    }
+  })
+  socket.on('cancelFriendRequest', (requestData) => {
+    const user = getUser(requestData.receiver)
+    if (user) {
+      io.to(user.socketId).emit('cancelFriendRequest', requestData._id)
     }
   })
   socket.on('disconnect', async () => {

@@ -7,7 +7,7 @@ import mongoose from 'mongoose'
 export const SendFriendRequest = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const receiverId = req.params.id
   const senderId = res.locals.user.id
-
+  console.log(receiverId, senderId)
   const idValid = CheckInvalidId(receiverId)
   if (!idValid) {
     return next(new AppError('Invalid ID', 400))
@@ -38,7 +38,16 @@ export const SendFriendRequest = AsyncHandler(async (req: Request, res: Response
     receiver: receiverId,
     status: 'pending'
   }
-  const newRequest = await FriendRequestModel.create(body)
+  let newRequest = await (
+    await FriendRequestModel.create(body)
+  ).populate({
+    path: 'receiver',
+    select: '_id userName firstName lastName avatar address'
+  })
+  newRequest = await newRequest.populate({
+    path: 'sender',
+    select: '_id userName firstName lastName avatar address'
+  })
   if (!newRequest) {
     return next(new AppError('Could not send request.', 400))
   }
@@ -55,7 +64,19 @@ export const AcceptFriendRequest = AsyncHandler(async (req: Request, res: Respon
   if (!idValid) {
     return next(new AppError('Invalid ID', 400))
   }
-  const friendRequest = await FriendRequestModel.findOne({ _id: requestId, receiver: myId, status: 'pending' })
+  const friendRequest = await FriendRequestModel.findOne({
+    _id: requestId,
+    receiver: myId,
+    status: 'pending'
+  })
+    .populate({
+      path: 'sender',
+      select: '_id userName firstName lastName avatar address'
+    })
+    .populate({
+      path: 'receiver',
+      select: '_id userName firstName lastName avatar address'
+    })
   if (!friendRequest) {
     return next(new AppError('The request does not exist.', 404))
   }
@@ -70,7 +91,7 @@ export const AcceptFriendRequest = AsyncHandler(async (req: Request, res: Respon
 
   res.status(200).json({
     status: 'success',
-    message: 'Successfully made friends.'
+    data: friendRequest
   })
 })
 export const RefusedFriendRequest = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
@@ -93,6 +114,31 @@ export const RefusedFriendRequest = AsyncHandler(async (req: Request, res: Respo
     message: 'Successfully refused.'
   })
 })
+export const CancelFriendRequest = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { requestId } = req.params
+  const { id: myId } = res.locals.user
+  const idValid = CheckInvalidId(requestId)
+  if (!idValid) {
+    return next(new AppError('Invalid ID', 400))
+  }
+  const friendRequest = await FriendRequestModel.findByIdAndDelete(
+    {
+      _id: requestId,
+      sender: myId,
+      status: 'pending'
+    },
+    {
+      new: true
+    }
+  )
+  if (!friendRequest) {
+    return next(new AppError('The request does not exist.', 404))
+  }
+  res.status(200).json({
+    status: 'success',
+    data: friendRequest
+  })
+})
 export const getFriendRequests = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const userId = res.locals.user.id
   const requests = await FriendRequestModel.find({
@@ -101,7 +147,11 @@ export const getFriendRequests = AsyncHandler(async (req: Request, res: Response
   })
     .populate({
       path: 'sender',
-      select: 'firstName lastName avatar address'
+      select: '_id userName firstName lastName avatar address'
+    })
+    .populate({
+      path: 'receiver',
+      select: '_id userName firstName lastName avatar address'
     })
     .sort({ createdAt: -1 })
   res.status(200).json({
@@ -117,7 +167,7 @@ export const getSentFriendRequests = AsyncHandler(async (req: Request, res: Resp
   })
     .populate({
       path: 'receiver',
-      select: 'firstName lastName avatar address'
+      select: '_id userName firstName lastName avatar address'
     })
     .sort({ createdAt: -1 })
   res.status(200).json({
