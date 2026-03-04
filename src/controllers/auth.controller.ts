@@ -104,6 +104,9 @@ export const UpdateProfile = AsyncHandler(async (req: Request, res: Response, ne
   if (req.body.coverPosition) {
     req.body.coverPosition = parseInt(req.body.coverPosition)
   }
+  if (!req.body.birthDate) {
+    delete req.body.birthDate
+  }
   const body = userSchema.partial().parse(req.body)
   const { id } = res.locals.user
   const existEmail = await UserModel.findOne({ email: body.email, deleted: false })
@@ -114,6 +117,7 @@ export const UpdateProfile = AsyncHandler(async (req: Request, res: Response, ne
   if (existUsername) {
     return next(new AppError('Username already in use. Please use a different username.', 400))
   }
+  console.log(1234)
   const updateMe = await UserModel.findByIdAndUpdate(id, body, { new: true }).select('-password')
   if (!updateMe) {
     return next(new AppError('Could not update user.', 400))

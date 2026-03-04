@@ -1,6 +1,15 @@
 import express from 'express'
 
-import { getAllUsers, getFriendsList, getSuggestions } from '@/controllers/user.controller'
+import {
+  addToHistory,
+  clearSearchHistory,
+  getAllUsers,
+  getFriendsList,
+  getSearchHistory,
+  getSuggestions,
+  removeFromHistory,
+  searchUsers
+} from '@/controllers/user.controller'
 import { getUserById } from '@/controllers/user.controller'
 import { getUserByEmail } from '@/controllers/user.controller'
 import { getUserByUserName } from '@/controllers/user.controller'
@@ -32,9 +41,14 @@ router.get('/getUserByEmail/:email', getUserByEmail)
 router.get('/getUserByUserName/:userName', getUserByUserName)
 router.get('/getSuggestion', authMiddleware, getSuggestions)
 router.get('/getFriendsList', authMiddleware, getFriendsList)
+router.get('/searchUsers', authMiddleware, searchUsers)
+router.get('/getHistory', authMiddleware, getSearchHistory)
 router.post('/register', createUser)
+router.post('/addToHistory', authMiddleware, addToHistory)
 router.put('/update-password', authMiddleware, UpdatePassword)
 router.put('/update-profile', authMiddleware, UploadImage, SaveImage, UpdateProfile)
 router.put('/updateUserById/:id', updateUserById)
 router.delete('/deleteUserById/:id', deleteUserById)
+router.delete('/removeHistory/:id', authMiddleware, removeFromHistory)
+router.delete('/clearAllHistory', authMiddleware, clearSearchHistory)
 export default router

@@ -154,6 +154,7 @@ export const getFriendRequests = AsyncHandler(async (req: Request, res: Response
       select: '_id userName firstName lastName avatar address'
     })
     .sort({ createdAt: -1 })
+  console.log(requests)
   res.status(200).json({
     success: true,
     data: requests
@@ -167,6 +168,10 @@ export const getSentFriendRequests = AsyncHandler(async (req: Request, res: Resp
   })
     .populate({
       path: 'receiver',
+      select: '_id userName firstName lastName avatar address'
+    })
+    .populate({
+      path: 'sender',
       select: '_id userName firstName lastName avatar address'
     })
     .sort({ createdAt: -1 })

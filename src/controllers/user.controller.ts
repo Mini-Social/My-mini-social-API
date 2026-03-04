@@ -173,3 +173,110 @@ export const getFriendsList = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Lỗi server', error })
   }
 }
+const makeVietnameseRegex = (str: string) => {
+  const a = '[aàáạảãâầấậẩẫăằắặẳẵ]'
+  const e = '[eèéẹẻẽêềếệểễ]'
+  const i = '[iìíịỉĩ]'
+  const o = '[oòóọỏõôồốộổỗơờớợởỡ]'
+  const u = '[uùúụủũưừứựửữ]'
+  const y = '[yỳýỵỷỹ]'
+  const d = '[dđ]'
+
+  return str
+    .replace(/a/gi, a)
+    .replace(/e/gi, e)
+    .replace(/i/gi, i)
+    .replace(/o/gi, o)
+    .replace(/u/gi, u)
+    .replace(/y/gi, y)
+    .replace(/d/gi, d)
+}
+export const searchUsers = async (req: Request, res: Response) => {
+  try {
+    const { q } = req.query
+    if (!q) return res.status(200).json({ data: [] })
+
+    const smartPattern = makeVietnameseRegex(q as string)
+    const searchRegex = new RegExp(smartPattern, 'i')
+
+    const users = await UserModel.find({
+      $or: [
+        { firstName: { $regex: searchRegex } },
+        { lastName: { $regex: searchRegex } },
+        { userName: { $regex: searchRegex } }
+      ]
+    })
+      .select('userName firstName lastName avatar _id')
+      .limit(10)
+
+    res.status(200).json({ data: users })
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi server' })
+  }
+}
+export const getSearchHistory = async (req: Request, res: Response) => {
+  try {
+    const userId = res.locals.user.id
+
+    const user = await UserModel.findById(userId)
+      .populate({
+        path: 'searchHistory.searchedUser',
+        select: 'userName firstName lastName avatar _id'
+      })
+      .select('searchHistory')
+    if (!user) return res.status(404).json({ message: 'User not found' })
+    return res.status(200).json({ data: user.searchHistory })
+  } catch (error) {
+    return res.status(500).json({ message: 'Server error', error })
+  }
+}
+export const addToHistory = async (req: Request, res: Response) => {
+  const { searchedUserId } = req.body
+  const userId = res.locals.user.id
+
+  try {
+    await UserModel.findByIdAndUpdate(userId, {
+      $pull: { searchHistory: { searchedUser: searchedUserId } }
+    })
+    await UserModel.findByIdAndUpdate(userId, {
+      $push: {
+        searchHistory: {
+          $each: [{ searchedUser: searchedUserId }],
+          $position: 0,
+          $slice: 15
+        }
+      }
+    })
+
+    res.status(200).json({ message: 'Thành công' })
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi server' })
+  }
+}
+export const removeFromHistory = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params
+    const userId = res.locals.user.id
+
+    await UserModel.findByIdAndUpdate(userId, {
+      $pull: { searchHistory: { searchedUser: id } }
+    })
+    console.log(userId, id)
+    return res.status(200).json({ message: 'Đã xóa mục này khỏi lịch sử' })
+  } catch (error) {
+    return res.status(500).json({ message: 'Lỗi server', error })
+  }
+}
+export const clearSearchHistory = async (req: Request, res: Response) => {
+  try {
+    const userId = res.locals.user._id
+
+    await UserModel.findByIdAndUpdate(userId, {
+      $set: { searchHistory: [] }
+    })
+
+    return res.status(200).json({ message: 'Đã dọn dẹp toàn bộ lịch sử' })
+  } catch (error) {
+    return res.status(500).json({ message: 'Lỗi server', error })
+  }
+}

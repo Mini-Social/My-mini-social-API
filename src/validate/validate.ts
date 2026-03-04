@@ -11,11 +11,11 @@ export const userSchema = zod
     background: zod.string().optional(),
     coverPosition: zod.number().optional(),
     bio: zod.string().optional(),
-    gender: zod.enum(['Male', 'Female'], 'Invalid gender.').optional(),
+    gender: zod.string().optional().nullable(),
     address: zod.string().optional(),
-    phone: zod.string().optional(),
-    birthDate: zod.coerce.date().optional(),
-    relationship: zod.enum(['Single', 'Married'], 'Invalid relationship.').optional()
+    phone: zod.string().optional().nullable(),
+    birthDate: zod.union([zod.coerce.date().optional(), zod.null()]).optional(),
+    relationship: zod.string().optional().nullable()
   })
   .refine((val) => val.password === val.passwordConfirm, {
     message: 'Passwords do not match.',

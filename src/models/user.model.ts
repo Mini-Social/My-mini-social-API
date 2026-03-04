@@ -1,5 +1,9 @@
 import mongoose, { Schema, Document } from 'mongoose'
 import bcrypt from 'bcrypt'
+interface ISearchHistory {
+  searchedUser: mongoose.Types.ObjectId
+  createdAt?: Date
+}
 export interface IUser extends Document {
   firstName: string
   lastName: string
@@ -10,17 +14,18 @@ export interface IUser extends Document {
   background: string
   coverPosition: number
   bio: string
-  gender: string
+  gender: string | null
   address: string
-  relationship: string
-  phone: string
-  birthDate: Date
+  relationship: string | null
+  phone: string | null
+  birthDate: Date | null
   role: string
   friends: mongoose.Types.ObjectId[]
   isOnline: boolean
   lastOnline: Date | null
   deleted: boolean
   comparePassword(candicatePassword: string): Promise<boolean>
+  searchHistory: ISearchHistory[]
 }
 
 const UserSchema = new Schema<IUser>(
@@ -34,16 +39,22 @@ const UserSchema = new Schema<IUser>(
     background: String,
     coverPosition: Number,
     bio: { type: String, default: '' },
-    gender: { type: String, enum: ['Male', 'Female'] },
+    gender: { type: String, enum: ['Male', 'Female'], default: null },
     address: { type: String, default: '' },
-    relationship: { type: String, enum: ['Single', 'Married '] },
-    phone: { type: String, default: '' },
+    relationship: { type: String, enum: ['Single', 'Married '], default: null },
+    phone: { type: String, default: null },
     birthDate: { type: Date, default: null },
     role: { type: String, enum: ['Admin', 'User'], default: 'User' },
     friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     isOnline: { type: Boolean, default: false },
     lastOnline: { type: Date, default: null },
-    deleted: { type: Boolean, default: false }
+    deleted: { type: Boolean, default: false },
+    searchHistory: [
+      {
+        searchedUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        createdAt: { type: Date, default: Date.now }
+      }
+    ]
   },
   { timestamps: true }
 )
